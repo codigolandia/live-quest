@@ -1,4 +1,4 @@
-module github.com/codigolandia/live-do-jogo
+module github.com/codigolandia/jogo-da-live
 
 go 1.21.6
 
