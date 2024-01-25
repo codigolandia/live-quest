@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"log"
+
 	"github.com/codigolandia/jogo-da-live/youtube"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"image/color"
-	"log"
 )
 
 var (
@@ -17,13 +19,17 @@ var (
 	CorVerde = color.RGBA{0, 0xff, 0, 0xff}
 )
 
-var img *ebiten.Image
+var (
+	img           *ebiten.Image
+	imgFrameCount = 5
+	imgSize       = 128
+)
 
 var yt *youtube.Client
 
 func init() {
 	var err error
-	img, _, err = ebitenutil.NewImageFromFile("assets/img/gopher.png")
+	img, _, err = ebitenutil.NewImageFromFile("assets/img/gopher_standing.png")
 	if err != nil {
 		panic(err)
 	}
@@ -34,47 +40,51 @@ type Inscrito struct {
 	Nome string
 	PosX float64
 	PosY float64
+
+	Frame int
 }
 
 type Jogo struct {
-	Inscritos []Inscrito
+	Inscritos map[string]Inscrito
+	Count     int
 }
 
 func (j *Jogo) Update() error {
 	msg := yt.FetchMessages()
 	for _, m := range msg {
-		log.Printf("novo inscrito: %#v", m)
-		j.Inscritos = append(j.Inscritos, Inscrito{
+		log.Printf("nova mensagem: %#v", m.AuthorDetails.DisplayName)
+		inscrito := Inscrito{
 			Nome: m.AuthorDetails.DisplayName,
-			PosX: float64(50.0 * len(j.Inscritos)),
-			PosY: float64(Altura) - 90,
-		})
+			PosX: float64(imgSize * len(j.Inscritos)),
+			PosY: float64(Altura) - float64(imgSize),
+		}
+		j.Inscritos[m.AuthorDetails.ChannelId] = inscrito
 	}
 
-	if len(j.Inscritos) == 0 {
-		j.Inscritos = append(j.Inscritos, Inscrito{
-			Nome: "Gopher",
-			PosX: 50.0,
-			PosY: float64(Altura) - 90,
-		})
-	}
+	j.Count++
 	return nil
 }
 
 func (j *Jogo) Draw(tela *ebiten.Image) {
 	tela.Fill(CorVerde)
 	for _, i := range j.Inscritos {
-		geom := ebiten.GeoM{}
-		geom.Scale(0.5, 0.5)
-		geom.Translate(i.PosX, i.PosY)
-		tela.DrawImage(img, &ebiten.DrawImageOptions{
-			GeoM: geom,
-		})
+		opts := &ebiten.DrawImageOptions{}
+		opts.GeoM.Translate(i.PosX, i.PosY)
+		frameIdx := (j.Count / 5) % imgFrameCount
+		fx, fy := 0, frameIdx*imgSize
+		frame := img.SubImage(image.Rect(fx, fy, fx+imgSize, fy+imgSize)).(*ebiten.Image)
+		tela.DrawImage(frame, opts)
 	}
 }
 
 func (j *Jogo) Layout(outsideWidth, outsideHeight int) (screenW, screenH int) {
 	return Largura, Altura
+}
+
+func New() *Jogo {
+	j := Jogo{}
+	j.Inscritos = make(map[string]Inscrito)
+	return &j
 }
 
 func main() {
@@ -90,7 +100,7 @@ func main() {
 	ebiten.SetWindowTitle("Jogo da Live!")
 	fmt.Println("Jogo da Live iniciando ...")
 
-	if err := ebiten.RunGame(&Jogo{}); err != nil {
+	if err := ebiten.RunGame(New()); err != nil {
 		panic(err)
 	}
 }
