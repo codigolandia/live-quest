@@ -1,5 +1,7 @@
 # jogo-da-live
 
+![Gopher](assets/img/gopher_standing.gif)
+
 Este é o nosso primeiro projeto na Codigolândia: um jogo desenvolvido em **Go**
 e que pode ser jogado durante as lives!
 
