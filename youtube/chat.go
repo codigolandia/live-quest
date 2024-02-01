@@ -3,28 +3,17 @@ package youtube
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/codigolandia/jogo-da-live/log"
+	"github.com/codigolandia/jogo-da-live/message"
 	"google.golang.org/api/option"
 	yt "google.golang.org/api/youtube/v3"
 )
 
 var LiveId = ""
-
-func I(msg string, args ...any) {
-	log.Printf("youtube: INFO: "+msg, args...)
-}
-
-func D(msg string, args ...any) {
-	log.Printf("youtube: DEBG: "+msg, args...)
-}
-
-func E(msg string, args ...any) {
-	log.Printf("youtube: ERRO: "+msg, args...)
-}
 
 type Client struct {
 	hc     http.Client
@@ -56,29 +45,6 @@ func New() (*Client, error) {
 	}, nil
 }
 
-type ListChatMessagesResponse struct {
-	NextPageToken   string `json:"nextPageToken"`
-	PollingInterval int    `json:"pollingIntervalMillis"`
-
-	Items []Message `json:"items"`
-}
-
-type Message struct {
-	AuthorDetails struct {
-		DisplayName string `json:"displayName"`
-	} `json:"authorDetails"`
-}
-
-type Video struct {
-	LiveStreamingDetails struct {
-		ChatId string `json:"activeLiveChatId"`
-	} `json:"liveStreamingDetails"`
-}
-
-type ListVideoResponse struct {
-	Items []Video `json:"items"`
-}
-
 func (c *Client) currentStream() string {
 	if LiveId == "" {
 		panic("Missing live id")
@@ -93,36 +59,45 @@ func (c *Client) loadChatId() string {
 		return c.chatId
 	}
 
-	req := c.svc.Videos.List([]string{"liveStreamingDetails"}).Id(c.currentStream())
+	liveId := c.currentStream()
+	log.I("carregando o chat ID da live %v", liveId)
+	req := c.svc.Videos.List([]string{"liveStreamingDetails"}).Id(liveId)
 	callback := func(resp *yt.VideoListResponse) error {
 		for i := range resp.Items {
 			v := resp.Items[i]
 			c.chatId = v.LiveStreamingDetails.ActiveLiveChatId
-			I("> chatId: %v", c.chatId)
+			log.I("> chatId: %v", c.chatId)
 			break
 		}
 		return nil
 	}
 	if err := req.Pages(context.Background(), callback); err != nil {
-		E("erro a obter chat ID: %v", err)
+		log.E("erro a obter chat ID: %v", err)
 	}
 	return c.chatId
 }
 
-func (c *Client) FetchMessages() (msg []*yt.LiveChatMessage) {
+func (c *Client) FetchMessages() (msg []message.Message) {
 	if c.nextPageToken != "" && time.Since(c.lastFetchTime) < c.pollingInterval {
 		return msg
 	}
 
-	req := c.svc.LiveChatMessages.List(c.loadChatId(), []string{"authorDetails"})
+	req := c.svc.LiveChatMessages.List(c.loadChatId(), []string{"authorDetails,snippet"})
 	req.PageToken(c.nextPageToken)
 	resp, err := req.Do()
 	if err != nil {
-		E("erro obtendo mensagens: %v", err)
+		log.E("erro obtendo mensagens: %v", err)
 		return msg
 	}
 	for i := range resp.Items {
-		msg = append(msg, resp.Items[i])
+		item := resp.Items[i]
+		msg = append(msg, message.Message{
+			UID:       item.AuthorDetails.ChannelId,
+			Author:    item.AuthorDetails.DisplayName,
+			Text:      item.Snippet.DisplayMessage,
+			Timestamp: item.Snippet.PublishedAt,
+			Platform:  message.PlatformYoutube,
+		})
 	}
 
 	c.nextPageToken = resp.NextPageToken

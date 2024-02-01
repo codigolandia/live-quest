@@ -1,6 +1,6 @@
 # jogo-da-live
 
-![Gopher](assets/img/gopher_standing.gif)
+![Gopher](cmd/jogo-da-live/assets/img/gopher_standing.gif)
 
 Este é o nosso primeiro projeto na Codigolândia: um jogo desenvolvido em **Go**
 e que pode ser jogado durante as lives!
@@ -31,7 +31,7 @@ na tela.
 ## TODO
 
 - [x] Ler os inscritos do Youtube
-- [ ] Ler os inscritos do Twitch 
+- [x] Ler os inscritos do Twitch
 - [x] Não duplicar os inscritos
 - [x] Criar um pixel art do Gopher
 - [ ] Movimentar o inscrito na tela

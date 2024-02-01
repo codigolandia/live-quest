@@ -1,8 +1,10 @@
 package log
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Level int
@@ -31,7 +33,23 @@ func (l Level) String() string {
 	return "INVALID"
 }
 
+func (l *Level) Set(v string) error {
+	if l == nil {
+		l = new(Level)
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return err
+	}
+	*l = Level(i)
+	return nil
+}
+
 var LogLevel Level = Info
+
+func init() {
+	flag.Var(&LogLevel, "log-level", "O nível de log mínimo")
+}
 
 func LOG(l Level, msg string, args ...any) {
 	if l < LogLevel {
