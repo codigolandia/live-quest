@@ -91,11 +91,17 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 	}
 	for i := range resp.Items {
 		item := resp.Items[i]
+		timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
+		if err != nil {
+			log.E("erro ao interpretar %v como um timestamp: %v",
+				item.Snippet.PublishedAt, err)
+			timeStamp = time.Now()
+		}
 		msg = append(msg, message.Message{
 			UID:       item.AuthorDetails.ChannelId,
 			Author:    item.AuthorDetails.DisplayName,
 			Text:      item.Snippet.DisplayMessage,
-			Timestamp: item.Snippet.PublishedAt,
+			Timestamp: timeStamp,
 			Platform:  message.PlatformYoutube,
 		})
 	}

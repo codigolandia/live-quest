@@ -30,13 +30,27 @@ na tela.
 
 ## TODO
 
-- [x] Ler os inscritos do Youtube
-- [x] Ler os inscritos do Twitch
-- [x] Não duplicar os inscritos
+- [x] Ler os expectadores do Youtube
+- [x] Ler os expectadores do Twitch
+- [ ] Enviar o PONG ao receber um PING da Twitch
+- [ ] Preservar o histórico do chat
+- [x] Não duplicar os expectadores
 - [x] Criar um pixel art do Gopher
-- [ ] Movimentar o inscrito na tela
+- [ ] Movimentar o expectador na tela
 - [ ] Adicionar os comandos de chat
 
+### Poderes e Powerups
+
+- Hadouken
+- Shoryuken
+- Came-hame-ha
+- Spear do Scorpion
+
+### Skins
+
+- Inspirado no Mario
+- Inspirado no Sonic
+- Ninja inspirado no Naruto
 
 ## Referências
 

@@ -46,7 +46,7 @@ func init() {
 	flag.StringVar(&youtube.LiveId, "y", "Youtube video ID of the stream", "")
 }
 
-type Inscrito struct {
+type Expectador struct {
 	Nome       string
 	Plataforma string
 	PosX       float64
@@ -54,11 +54,16 @@ type Inscrito struct {
 }
 
 type Jogo struct {
-	Inscritos map[string]Inscrito
-	Count     int
+	Expectadores map[string]Expectador
+	Count        int
 }
 
 func (j *Jogo) Update() error {
+	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+		log.I("encerrando ...")
+		return ebiten.Termination
+	}
+
 	var msg []message.Message
 
 	if yt != nil {
@@ -70,20 +75,20 @@ func (j *Jogo) Update() error {
 	}
 
 	for _, m := range msg {
-		inscrito := Inscrito{
+		inscrito := Expectador{
 			Nome:       m.Author,
 			Plataforma: m.Platform,
 
 			PosY: float64(Altura) - float64(imgSize),
 		}
-		j.Inscritos[m.UID] = inscrito
+		j.Expectadores[m.UID] = inscrito
 	}
 
 	count := 0
-	for uid := range j.Inscritos {
-		i := j.Inscritos[uid]
+	for uid := range j.Expectadores {
+		i := j.Expectadores[uid]
 		i.PosX = float64(count * imgSize)
-		j.Inscritos[uid] = i
+		j.Expectadores[uid] = i
 		count = count + 1
 	}
 
@@ -94,7 +99,7 @@ func (j *Jogo) Update() error {
 func (j *Jogo) Draw(tela *ebiten.Image) {
 	tela.Fill(CorVerde)
 	if img != nil {
-		for _, i := range j.Inscritos {
+		for _, i := range j.Expectadores {
 			opts := &ebiten.DrawImageOptions{}
 			opts.GeoM.Translate(i.PosX, i.PosY)
 			frameIdx := (j.Count / 5) % imgFrameCount
@@ -111,7 +116,7 @@ func (j *Jogo) Layout(outsideWidth, outsideHeight int) (screenW, screenH int) {
 
 func New() *Jogo {
 	j := Jogo{}
-	j.Inscritos = make(map[string]Inscrito)
+	j.Expectadores = make(map[string]Expectador)
 	return &j
 }
 

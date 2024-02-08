@@ -57,8 +57,14 @@ func (c *Client) goReadTheMessages() {
 				continue
 			}
 			fields := strings.Fields(msg)
+			if len(fields) == 2 && fields[0] == "PING" {
+				// PING :tmi.twitch.tv
+				log.I("enviando PONG")
+				c.send("PONG")
+				continue
+			}
 			if len(fields) < 4 {
-				log.E("mensagem inválida: %v", msg)
+				log.E("ignorando mensagem: %v", msg)
 				continue
 			}
 			uid, cmd, ch := fields[0], fields[1], fields[2]
@@ -68,10 +74,11 @@ func (c *Client) goReadTheMessages() {
 				msgText := strings.Join(fields[3:], " ")
 				c.unreadMu.Lock()
 				c.unread = append(c.unread, message.Message{
-					UID:      uid,
-					Author:   author,
-					Text:     msgText,
-					Platform: message.PlatformTwitch,
+					UID:       uid,
+					Author:    author,
+					Text:      msgText,
+					Timestamp: time.Now(),
+					Platform:  message.PlatformTwitch,
 				})
 				c.unreadMu.Unlock()
 				log.D("nova mensagem de '%v' em %v: %v", author, ch, msgText)
