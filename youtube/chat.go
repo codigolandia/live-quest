@@ -38,6 +38,10 @@ func New() (*Client, error) {
 		return nil, fmt.Errorf("youtube: erro inicializando serviço do Youtube: %v", err)
 	}
 
+	if LiveId == "" {
+		return nil, fmt.Errorf("youtube: faltando preencher o Live ID")
+	}
+
 	return &Client{
 		hc:     http.Client{},
 		svc:    svc,
@@ -46,9 +50,6 @@ func New() (*Client, error) {
 }
 
 func (c *Client) currentStream() string {
-	if LiveId == "" {
-		panic("Missing live id")
-	}
 	// TODO: automatizar a busca pela live atual
 	// Requer OAuth2 para acessar a live ativa.
 	return LiveId
@@ -78,9 +79,15 @@ func (c *Client) loadChatId() string {
 }
 
 func (c *Client) FetchMessages() (msg []message.Message) {
-	if c.nextPageToken != "" && time.Since(c.lastFetchTime) < c.pollingInterval {
+	// Wait for pollingInterval to be passed before calling again.
+	hasWaitedEnough := time.Since(c.lastFetchTime) > c.pollingInterval
+	if !hasWaitedEnough {
 		return msg
 	}
+
+	// Avoid repeating many requests if an error happens
+	c.lastFetchTime = time.Now()
+	c.pollingInterval = 10 * time.Second
 
 	req := c.svc.LiveChatMessages.List(c.loadChatId(), []string{"authorDetails,snippet"})
 	req.PageToken(c.nextPageToken)
@@ -109,7 +116,20 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 	c.nextPageToken = resp.NextPageToken
 	d := time.Duration(resp.PollingIntervalMillis) * time.Millisecond
 	c.pollingInterval = d
-	c.lastFetchTime = time.Now()
 
 	return msg
+}
+
+func (c *Client) NextPageToken() string {
+	if c == nil {
+		return ""
+	}
+	return c.nextPageToken
+}
+
+func (c *Client) SetPageToken(t string) {
+	if c == nil {
+		return
+	}
+	c.nextPageToken = t
 }

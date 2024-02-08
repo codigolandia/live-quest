@@ -2,9 +2,11 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"flag"
 	"image"
 	"image/color"
+	"os"
 
 	"github.com/codigolandia/jogo-da-live/log"
 	"github.com/codigolandia/jogo-da-live/message"
@@ -43,7 +45,9 @@ func init() {
 	if err != nil {
 		log.E("imagem não encontrada: %v", err)
 	}
-	flag.StringVar(&youtube.LiveId, "y", "Youtube video ID of the stream", "")
+	// Opções da linha de comandos
+	flag.StringVar(&youtube.LiveId, "youtube-stream", "",
+		"Ativa o chat do Youtube no vídeo id informado")
 }
 
 type Expectador struct {
@@ -54,8 +58,51 @@ type Expectador struct {
 }
 
 type Jogo struct {
-	Expectadores map[string]Expectador
-	Count        int
+	Expectadores  map[string]Expectador `json:"expectadores"`
+	HistoricoChat []message.Message     `json:"historicoChat"`
+
+	YoutubePageToken string `json:"youtubePageToken"`
+	Count            int    `json:"-"`
+}
+
+func (j *Jogo) Autosave() {
+	if j.Count%(60*10) != 0 {
+		return
+	}
+	log.I("iniciando autosave")
+	fileName := "/tmp/jogo-da-live.json"
+	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.E("erro ao abrir o arquivo: %v", err)
+		return
+	}
+	defer fd.Close()
+
+	if err := json.NewEncoder(fd).Encode(j); err != nil {
+		log.E("erro ao serializar: %v", err)
+		return
+	}
+	log.I("jogo salvo")
+}
+
+func (j *Jogo) Autoload() {
+	fileName := "/tmp/jogo-da-live.json"
+	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.E("erro ao abrir o arquivo: %v", err)
+		return
+	}
+	defer fd.Close()
+
+	if err := json.NewDecoder(fd).Decode(j); err != nil {
+		log.E("erro ao serializar: %v", err)
+		return
+	}
+
+	if yt != nil {
+		yt.SetPageToken(j.YoutubePageToken)
+	}
+	log.I("jogo carregado, %v", j)
 }
 
 func (j *Jogo) Update() error {
@@ -63,6 +110,8 @@ func (j *Jogo) Update() error {
 		log.I("encerrando ...")
 		return ebiten.Termination
 	}
+
+	j.Autosave()
 
 	var msg []message.Message
 
@@ -75,6 +124,8 @@ func (j *Jogo) Update() error {
 	}
 
 	for _, m := range msg {
+		log.D("mensagem recebida de [%v]%v: %#s", m.UID, m.Author, m.Text)
+		j.HistoricoChat = append(j.HistoricoChat, m)
 		inscrito := Expectador{
 			Nome:       m.Author,
 			Plataforma: m.Platform,
@@ -84,10 +135,11 @@ func (j *Jogo) Update() error {
 		j.Expectadores[m.UID] = inscrito
 	}
 
-	count := 0
+	count := 1
 	for uid := range j.Expectadores {
 		i := j.Expectadores[uid]
 		i.PosX = float64(count * imgSize)
+		log.D("posicionando %v: %v,%v", uid, i.PosX, i.PosY)
 		j.Expectadores[uid] = i
 		count = count + 1
 	}
@@ -135,9 +187,12 @@ func main() {
 
 	ebiten.SetWindowSize(Largura, Altura)
 	ebiten.SetWindowTitle("Jogo da Live!")
-	log.I("Jogo da Live iniciando ...")
 
-	if err := ebiten.RunGame(New()); err != nil {
+	log.I("Jogo da Live iniciando ...")
+	j := New()
+	j.Autoload()
+
+	if err := ebiten.RunGame(j); err != nil {
 		panic(err)
 	}
 }

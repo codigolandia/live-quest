@@ -56,6 +56,7 @@ func (c *Client) goReadTheMessages() {
 				log.E("erro ao ler mensagem: %v", err)
 				continue
 			}
+			// :foo!foo@foo.tmi.twitch.tv PRIVMSG #bar :bleedPurple
 			fields := strings.Fields(msg)
 			if len(fields) == 2 && fields[0] == "PING" {
 				// PING :tmi.twitch.tv
@@ -72,6 +73,9 @@ func (c *Client) goReadTheMessages() {
 			case "PRIVMSG":
 				author := parseAuthor(uid)
 				msgText := strings.Join(fields[3:], " ")
+				if strings.HasPrefix(msgText, ":") {
+					msgText = msgText[1:]
+				}
 				c.unreadMu.Lock()
 				c.unread = append(c.unread, message.Message{
 					UID:       uid,
@@ -107,6 +111,7 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 		return
 	}
 	msg = make([]message.Message, len(c.unread))
+	copy(msg, c.unread)
 	c.unread = make([]message.Message, 0, 10)
 	return msg
 }

@@ -32,8 +32,8 @@ na tela.
 
 - [x] Ler os expectadores do Youtube
 - [x] Ler os expectadores do Twitch
-- [ ] Enviar o PONG ao receber um PING da Twitch
-- [ ] Preservar o histórico do chat
+- [x] Enviar o PONG ao receber um PING da Twitch
+- [x] Preservar o histórico do chat
 - [x] Não duplicar os expectadores
 - [x] Criar um pixel art do Gopher
 - [ ] Movimentar o expectador na tela
