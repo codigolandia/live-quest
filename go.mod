@@ -4,6 +4,7 @@ go 1.21.6
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.6.3
+	golang.org/x/image v0.15.0
 	google.golang.org/api v0.157.0
 )
 
@@ -28,7 +29,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.22.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20230817173708-d852ddb80c63 // indirect
-	golang.org/x/image v0.12.0 // indirect
 	golang.org/x/mobile v0.0.0-20230922142353-e2f452493d57 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect

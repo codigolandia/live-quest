@@ -36,8 +36,9 @@ na tela.
 - [x] Preservar o histórico do chat
 - [x] Não duplicar os expectadores
 - [x] Criar um pixel art do Gopher
+- [x] Movimentar o expectador na tela
+- [x] Atribuir cores aleatórias aos Gophers
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
-- [ ] Movimentar o expectador na tela
 - [ ] Adicionar os comandos de chat
 
 ### Poderes e Powerups
