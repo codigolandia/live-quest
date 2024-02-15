@@ -111,6 +111,8 @@ func (gopher *GopherImage) At(x, y int) color.Color {
 	return original
 }
 
+var gravity = 0.1
+
 type Expectador struct {
 	Nome       string
 	Plataforma string
@@ -119,6 +121,7 @@ type Expectador struct {
 	PosY float64
 
 	VelX float64
+	VelY float64
 
 	Sprite      *ebiten.Image `json:"-"`
 	SpriteColor color.Color
@@ -202,18 +205,27 @@ func (j *Jogo) Update() error {
 	for _, m := range msg {
 		log.D("mensagem recebida de [%v]%v: %#s", m.UID, m.Author, m.Text)
 		j.HistoricoChat = append(j.HistoricoChat, m)
-		inscrito := &Expectador{
-			Nome:       m.Author,
-			Plataforma: m.Platform,
+		e, ok := j.Expectadores[m.UID]
+		if !ok {
+			e = &Expectador{
+				Nome:       m.Author,
+				Plataforma: m.Platform,
 
-			PosY: float64(Altura) - float64(imgSize),
-			PosX: float64(rand.Int() * imgSize),
+				PosY: float64(Altura) - float64(imgSize),
+				PosX: float64(rand.Int() * imgSize),
 
-			Sprite:      ebiten.NewImageFromImage(&GopherImage{img: img}),
-			SpriteFrame: rand.Int() % imgFrameCount,
+				Sprite:      ebiten.NewImageFromImage(&GopherImage{img: img}),
+				SpriteFrame: rand.Int() % imgFrameCount,
+			}
+			j.Expectadores[m.UID] = e
+			j.UIDs = append(j.UIDs, m.UID)
 		}
-		j.Expectadores[m.UID] = inscrito
-		j.UIDs = append(j.UIDs, m.UID)
+		// Processa os comandos
+		switch m.Text {
+		case "!jump":
+			log.D("%s está pulando!", m.UID)
+			e.VelY = -100
+		}
 	}
 
 	count := 1
@@ -238,7 +250,15 @@ func (j *Jogo) Update() error {
 			}
 		}
 
+		// Movimentação
 		e.PosX = e.PosX + e.VelX
+		e.PosY = e.PosY + e.VelY
+		e.VelY = e.VelY + gravity
+		if e.VelY < 0 {
+			e.VelY = 0
+		}
+
+		// Bordas da tela
 		screenMargin := 400.0
 		if e.PosX > float64(Largura)-float64(imgSize)-screenMargin {
 			e.PosX = float64(Largura) - float64(imgSize) - screenMargin
@@ -247,6 +267,15 @@ func (j *Jogo) Update() error {
 		if e.PosX < 0 {
 			e.PosX = 0
 			e.VelX = 2
+		}
+		if e.PosY < 0 {
+			e.PosY = 0
+			e.VelY = 50
+		}
+		chao := float64(Altura - imgSize)
+		if e.PosY > chao {
+			e.PosY = chao
+			e.VelY = 0
 		}
 
 		count = count + 1
