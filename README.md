@@ -38,8 +38,15 @@ na tela.
 - [x] Criar um pixel art do Gopher
 - [x] Movimentar o expectador na tela
 - [x] Atribuir cores aleatórias aos Gophers
+- [ ] Adicionar recursos de XP
+  - [ ] Adicionar o XP ao jogador durante a live
+  - [ ] Adicionar HP
+- [-] Adicionar os comandos de chat
+  - [x] `!jump` para pular
+  - [ ] `!fight` para iniciar uma luta
+- [ ] Adicionar a plataforma ao lado do nome do expectador
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
-- [ ] Adicionar os comandos de chat
+- [ ] Escrever o chat via Overlay no OBS
 
 ### Poderes e Powerups
 
