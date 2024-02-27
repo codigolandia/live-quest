@@ -46,6 +46,7 @@ na tela.
   - [ ] `!fight` para iniciar uma luta
 - [ ] Adicionar a plataforma ao lado do nome do expectador
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
+- [x] Otimizar o chat do Youtube
 - [ ] Escrever o chat via Overlay no OBS
 
 ### Poderes e Powerups

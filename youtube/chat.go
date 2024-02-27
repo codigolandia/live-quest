@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/codigolandia/jogo-da-live/log"
@@ -24,6 +25,9 @@ type Client struct {
 	nextPageToken   string
 	pollingInterval time.Duration
 	lastFetchTime   time.Time
+
+	unreadMu sync.Mutex
+	unread   []message.Message
 }
 
 func New() (*Client, error) {
@@ -42,11 +46,15 @@ func New() (*Client, error) {
 		return nil, fmt.Errorf("youtube: faltando preencher o Live ID")
 	}
 
-	return &Client{
+	c := &Client{
 		hc:     http.Client{},
 		svc:    svc,
 		apiKey: apiKey,
-	}, nil
+		unread: make([]message.Message, 0, 10),
+	}
+	c.goReadTheMessages()
+
+	return c, nil
 }
 
 func (c *Client) currentStream() string {
@@ -79,45 +87,60 @@ func (c *Client) loadChatId() string {
 }
 
 func (c *Client) FetchMessages() (msg []message.Message) {
-	// Wait for pollingInterval to be passed before calling again.
-	hasWaitedEnough := time.Since(c.lastFetchTime) > c.pollingInterval
-	if !hasWaitedEnough {
-		return msg
+	c.unreadMu.Lock()
+	defer c.unreadMu.Unlock()
+
+	if len(c.unread) < 0 {
+		return
 	}
-
-	// Avoid repeating many requests if an error happens
-	c.lastFetchTime = time.Now()
-	c.pollingInterval = 10 * time.Second
-
-	req := c.svc.LiveChatMessages.List(c.loadChatId(), []string{"authorDetails,snippet"})
-	req.PageToken(c.nextPageToken)
-	resp, err := req.Do()
-	if err != nil {
-		log.E("erro obtendo mensagens: %v", err)
-		return msg
-	}
-	for i := range resp.Items {
-		item := resp.Items[i]
-		timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
-		if err != nil {
-			log.E("erro ao interpretar %v como um timestamp: %v",
-				item.Snippet.PublishedAt, err)
-			timeStamp = time.Now()
-		}
-		msg = append(msg, message.Message{
-			UID:       item.AuthorDetails.ChannelId,
-			Author:    item.AuthorDetails.DisplayName,
-			Text:      item.Snippet.DisplayMessage,
-			Timestamp: timeStamp,
-			Platform:  message.PlatformYoutube,
-		})
-	}
-
-	c.nextPageToken = resp.NextPageToken
-	d := time.Duration(resp.PollingIntervalMillis) * time.Millisecond
-	c.pollingInterval = d
-
+	msg = make([]message.Message, len(c.unread))
+	copy(msg, c.unread)
+	c.unread = make([]message.Message, 0, 10)
 	return msg
+}
+
+func (c *Client) goReadTheMessages() {
+	go func() {
+		for {
+			// Avoid repeating many requests if an error happens
+			c.lastFetchTime = time.Now()
+			c.pollingInterval = 10 * time.Second
+
+			fields := []string{"authorDetails,snippet"}
+			req := c.svc.LiveChatMessages.List(c.loadChatId(), fields)
+			req.PageToken(c.nextPageToken)
+			resp, err := req.Do()
+			if err != nil {
+				log.E("erro obtendo mensagens: %v", err)
+				return
+			}
+			for i := range resp.Items {
+				item := resp.Items[i]
+				timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
+				if err != nil {
+					log.E("erro ao interpretar %v como um timestamp: %v",
+						item.Snippet.PublishedAt, err)
+					timeStamp = time.Now()
+				}
+				c.unreadMu.Lock()
+				c.unread = append(c.unread, message.Message{
+					UID:       item.AuthorDetails.ChannelId,
+					Author:    item.AuthorDetails.DisplayName,
+					Text:      item.Snippet.DisplayMessage,
+					Timestamp: timeStamp,
+					Platform:  message.PlatformYoutube,
+				})
+				c.unreadMu.Unlock()
+			}
+
+			c.nextPageToken = resp.NextPageToken
+			d := time.Duration(resp.PollingIntervalMillis) * time.Millisecond
+			c.pollingInterval = d
+
+			// Wait for pollingInterval to be passed before calling again.
+			time.Sleep(max(c.pollingInterval, 5*time.Second))
+		}
+	}()
 }
 
 func (c *Client) NextPageToken() string {
