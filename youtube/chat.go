@@ -33,17 +33,17 @@ type Client struct {
 func New() (*Client, error) {
 	apiKey := os.Getenv("YOUTUBE_API_KEY")
 	if apiKey == "" {
-		return nil, fmt.Errorf("youtube: defina a variável YOUTUBE_API_KEY")
+		return nil, fmt.Errorf("youtube: environment variable unset: YOUTUBE_API_KEY")
 	}
 
 	ctx := context.Background()
 	svc, err := yt.NewService(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
-		return nil, fmt.Errorf("youtube: erro inicializando serviço do Youtube: %v", err)
+		return nil, fmt.Errorf("youtube: error initializing Youtube service: %v", err)
 	}
 
 	if LiveId == "" {
-		return nil, fmt.Errorf("youtube: faltando preencher o Live ID")
+		return nil, fmt.Errorf("youtube: missing flag LiveID")
 	}
 
 	c := &Client{
@@ -69,7 +69,7 @@ func (c *Client) loadChatId() string {
 	}
 
 	liveId := c.currentStream()
-	log.I("carregando o chat ID da live %v", liveId)
+	log.I("loading chat with ID %v", liveId)
 	req := c.svc.Videos.List([]string{"liveStreamingDetails"}).Id(liveId)
 	callback := func(resp *yt.VideoListResponse) error {
 		for i := range resp.Items {
@@ -81,7 +81,7 @@ func (c *Client) loadChatId() string {
 		return nil
 	}
 	if err := req.Pages(context.Background(), callback); err != nil {
-		log.E("erro a obter chat ID: %v", err)
+		log.E("error parsing chatID: %v", err)
 	}
 	return c.chatId
 }
@@ -111,14 +111,14 @@ func (c *Client) goReadTheMessages() {
 			req.PageToken(c.nextPageToken)
 			resp, err := req.Do()
 			if err != nil {
-				log.E("erro obtendo mensagens: %v", err)
+				log.E("error loading messages: %v", err)
 				return
 			}
 			for i := range resp.Items {
 				item := resp.Items[i]
 				timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
 				if err != nil {
-					log.E("erro ao interpretar %v como um timestamp: %v",
+					log.E("unable to parse %v as timestamp: %v",
 						item.Snippet.PublishedAt, err)
 					timeStamp = time.Now()
 				}
@@ -139,6 +139,7 @@ func (c *Client) goReadTheMessages() {
 
 			// Wait for pollingInterval to be passed before calling again.
 			time.Sleep(max(c.pollingInterval, 5*time.Second))
+			log.D("waiting for messages")
 		}
 	}()
 }

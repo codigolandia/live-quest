@@ -24,20 +24,20 @@ type Client struct {
 }
 
 func New() (c *Client, err error) {
-	log.I("connectando ao Twitch em %s", addr)
+	log.I("connecting to twitch IRC server at %s", addr)
 	c = &Client{}
 	c.unread = make([]message.Message, 0, 10)
 	c.conn, err = net.Dial("tcp", addr)
 	if err != nil {
-		log.E("erro ao conectar: %v", err)
+		log.E("error connecting: %v", err)
 		return nil, err
 	}
 	c.reader = textproto.NewReader(bufio.NewReader(c.conn))
 	c.goReadTheMessages()
-	log.D("conexão tcp estabelecida")
+	log.D("tcp connection stablished")
 
-	log.D("enviando nick (err=%v)", c.send("NICK justinfan12345"))
-	log.D("entrando no servidor (err=%v)", c.send("JOIN #codigolandia"))
+	log.D("sending NICK command (err=%v)", c.send("NICK justinfan12345"))
+	log.D("joining channel (err=%v)", c.send("JOIN #codigolandia"))
 	return c, nil
 }
 
@@ -50,22 +50,22 @@ func (c *Client) goReadTheMessages() {
 	go func() {
 		for {
 			time.Sleep(100 * time.Millisecond)
-			log.D("aguardando mensagem ...")
+			log.D("waiting for new messages...")
 			msg, err := c.reader.ReadLine()
 			if err != nil {
-				log.E("erro ao ler mensagem: %v", err)
+				log.E("error reading new message: %v", err)
 				continue
 			}
 			// :foo!foo@foo.tmi.twitch.tv PRIVMSG #bar :bleedPurple
 			fields := strings.Fields(msg)
 			if len(fields) == 2 && fields[0] == "PING" {
 				// PING :tmi.twitch.tv
-				log.I("enviando PONG")
+				log.I("sending PONG")
 				c.send("PONG")
 				continue
 			}
 			if len(fields) < 4 {
-				log.E("ignorando mensagem: %v", msg)
+				log.E("ignoring: %v", msg)
 				continue
 			}
 			uid, cmd, ch := fields[0], fields[1], fields[2]
@@ -85,9 +85,9 @@ func (c *Client) goReadTheMessages() {
 					Platform:  message.PlatformTwitch,
 				})
 				c.unreadMu.Unlock()
-				log.D("nova mensagem de '%v' em %v: %v", author, ch, msgText)
+				log.D("new message from '%v' at %v: %v", author, ch, msgText)
 			default:
-				log.D("ignorando: %v:", msg)
+				log.D("ignoring: %v:", msg)
 			}
 		}
 	}()
@@ -99,7 +99,7 @@ func (c *Client) recv() (msg string, err error) {
 
 func (c *Client) send(msg string) error {
 	n, err := fmt.Fprintf(c.conn, msg+"\n")
-	log.D("%d bytes enviados (err=%v)", n, err)
+	log.D("%d bytes sent (err=%v)", n, err)
 	return err
 }
 
@@ -117,5 +117,5 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 }
 
 func (c *Client) Close() {
-	log.D("encerrando conexão (err=%v)", c.conn.Close())
+	log.D("closing connection (err=%v)", c.conn.Close())
 }

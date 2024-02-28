@@ -1,7 +1,6 @@
 package main
 
 import (
-	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,13 +8,14 @@ import (
 	"image/color"
 	"math/rand"
 	"os"
+	"path"
 
+	"github.com/codigolandia/jogo-da-live/assets"
 	"github.com/codigolandia/jogo-da-live/log"
 	"github.com/codigolandia/jogo-da-live/message"
 	"github.com/codigolandia/jogo-da-live/twitch"
 	"github.com/codigolandia/jogo-da-live/youtube"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/image/font/opentype"
@@ -24,18 +24,13 @@ import (
 )
 
 var (
-	Largura = 1920
-	Altura  = 1080
+	Width  = 1920
+	Height = 1080
 
 	// Delay para realizar o auto-save em game ticks
 	AutoSaveDelay = 60 * 10
 
-	CorVerde = color.RGBA{0, 0xff, 0, 0xff}
-)
-
-var (
-	//go:embed assets
-	assets embed.FS
+	ColorGreen = color.RGBA{0, 0xff, 0, 0xff}
 )
 
 var (
@@ -44,6 +39,8 @@ var (
 	imgSize       = 128
 
 	face font.Face
+
+	gravity = 0.1
 )
 
 var (
@@ -53,10 +50,10 @@ var (
 
 func init() {
 	var err error
-	r, _ := assets.Open("assets/img/gopher_standing.png")
+	r, _ := assets.Assets.Open("img/gopher_standing.png")
 	img, _, err = image.Decode(r)
 	if err != nil {
-		log.E("imagem não encontrada: %v", err)
+		log.E("image not found: %v", err)
 	}
 
 	tt, err := opentype.Parse(gomono.TTF)
@@ -77,123 +74,68 @@ func init() {
 		"Ativa o chat do Youtube no vídeo id informado")
 }
 
-type GopherImage struct {
-	img image.Image
-	clr *color.RGBA
-}
-
-func (gopher *GopherImage) Color() color.Color {
-	if gopher.clr == nil {
-		gopher.clr = &color.RGBA{
-			R: uint8(rand.Intn(255)),
-			G: uint8(rand.Intn(126)),
-			B: uint8(rand.Intn(255)),
-			A: 0xff,
-		}
-	}
-	return gopher.clr
-}
-
-func (gopher *GopherImage) ColorModel() color.Model {
-	return gopher.img.ColorModel()
-}
-
-func (gopher *GopherImage) Bounds() image.Rectangle {
-	return gopher.img.Bounds()
-}
-
-func (gopher *GopherImage) At(x, y int) color.Color {
-	original := gopher.img.At(x, y)
-	r, g, b, a := original.RGBA()
-	if r == 0x9c9c && g == 0xeded && b == 0xffff && a == 0xffff {
-		original = gopher.Color()
-	}
-	return original
-}
-
-var gravity = 0.1
-
-type Expectador struct {
-	Nome       string
-	Plataforma string
-
-	PosX float64
-	PosY float64
-
-	VelX float64
-	VelY float64
-
-	Sprite      *ebiten.Image `json:"-"`
-	SpriteColor color.Color
-	SpriteFrame int
-}
-
-type Jogo struct {
-	Expectadores  map[string]*Expectador `json:"expectadores"`
-	UIDs          []string               `json:"-"`
-	HistoricoChat []message.Message      `json:"historicoChat"`
+type Game struct {
+	Viewers     map[string]*Viewer `json:"viewers"`
+	UIDs        []string           `json:"-"`
+	ChatHistory []message.Message  `json:"chatHistory"`
 
 	YoutubePageToken string `json:"youtubePageToken"`
 	Count            int    `json:"-"`
 }
 
-func (j *Jogo) Autosave() {
-	if j.Count%(AutoSaveDelay) != 0 {
-		return
-	}
-	log.I("iniciando autosave")
-	fileName := "/tmp/jogo-da-live.json"
-	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		log.E("erro ao abrir o arquivo: %v", err)
-		return
-	}
-	defer fd.Close()
-	j.YoutubePageToken = yt.NextPageToken()
-
-	if err := json.NewEncoder(fd).Encode(j); err != nil {
-		log.E("erro ao serializar: %v", err)
-		return
-	}
-	log.I("jogo salvo")
+func (g *Game) tempFile() string {
+	return path.Join(os.TempDir(), "jogo-da-live.json")
 }
 
-func (j *Jogo) Autoload() {
-	fileName := "/tmp/jogo-da-live.json"
+func (g *Game) Autosave() {
+	if g.Count%(AutoSaveDelay) != 0 {
+		return
+	}
+	log.I("auto-saving ...")
+	fileName := g.tempFile()
 	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
-		log.E("erro ao abrir o arquivo: %v", err)
+		log.E("error opening tempfile: %v", err)
+		return
+	}
+	defer fd.Close()
+	g.YoutubePageToken = yt.NextPageToken()
+
+	if err := json.NewEncoder(fd).Encode(g); err != nil {
+		log.E("error serializing data: %v", err)
+		return
+	}
+	log.I("game saved!")
+}
+
+func (g *Game) Autoload() {
+	fileName := g.tempFile()
+	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.E("error opening temp file: %v", err)
 		return
 	}
 	defer fd.Close()
 
-	if err := json.NewDecoder(fd).Decode(j); err != nil {
-		log.E("erro ao serializar: %v", err)
+	if err := json.NewDecoder(fd).Decode(g); err != nil {
+		log.E("error deserializing: %v", err)
 		return
 	}
 
-	for uid := range j.Expectadores {
-		e := j.Expectadores[uid]
+	for uid := range g.Viewers {
+		e := g.Viewers[uid]
 		e.Sprite = ebiten.NewImageFromImage(&GopherImage{img: img})
-		j.UIDs = append(j.UIDs, uid)
+		g.UIDs = append(g.UIDs, uid)
 	}
 
 	if yt != nil {
-		yt.SetPageToken(j.YoutubePageToken)
+		yt.SetPageToken(g.YoutubePageToken)
 	}
-	log.I("jogo carregado, %v", j)
+	log.I("game loaded")
 }
 
-func (j *Jogo) Update() error {
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-		log.I("encerrando ...")
-		return ebiten.Termination
-	}
-
-	j.Autosave()
-
+func (g *Game) CheckNewMessages() {
 	var msg []message.Message
-
 	if yt != nil {
 		msg = yt.FetchMessages()
 	}
@@ -203,114 +145,70 @@ func (j *Jogo) Update() error {
 	}
 
 	for _, m := range msg {
-		log.D("mensagem recebida de [%v]%v: %#s", m.UID, m.Author, m.Text)
-		j.HistoricoChat = append(j.HistoricoChat, m)
-		e, ok := j.Expectadores[m.UID]
+		log.D("new message from [%v]%v: %#s", m.UID, m.Author, m.Text)
+		g.ChatHistory = append(g.ChatHistory, m)
+		v, ok := g.Viewers[m.UID]
 		if !ok {
-			e = &Expectador{
-				Nome:       m.Author,
-				Plataforma: m.Platform,
+			v = &Viewer{
+				Name:     m.Author,
+				Platform: m.Platform,
 
-				PosY: float64(Altura) - float64(imgSize),
+				PosY: float64(Height) - float64(imgSize),
 				PosX: float64(rand.Int() * imgSize),
 
 				Sprite:      ebiten.NewImageFromImage(&GopherImage{img: img}),
 				SpriteFrame: rand.Int() % imgFrameCount,
 			}
-			j.Expectadores[m.UID] = e
-			j.UIDs = append(j.UIDs, m.UID)
+			g.Viewers[m.UID] = v
+			g.UIDs = append(g.UIDs, m.UID)
 		}
-		// Processa os comandos
-		switch m.Text {
-		case "!jump":
-			log.D("%s está pulando!", m.UID)
-			e.VelY = -100
-		}
+
+		g.ParseCommands(m, v)
 	}
+}
 
-	count := 1
-	for _, uid := range j.UIDs {
-		e := j.Expectadores[uid]
-
-		if j.Count%12 == 0 {
-			e.SpriteFrame++
-			if e.SpriteFrame >= imgFrameCount {
-				e.SpriteFrame = 0
-			}
-		}
-
-		if j.Count%128 == 0 {
-			switch rand.Intn(3) {
-			case 0:
-				e.VelX = 0
-			case 1:
-				e.VelX = 1
-			case 2:
-				e.VelX = -1
-			}
-		}
-
-		// Movimentação
-		e.PosX = e.PosX + e.VelX
-		e.PosY = e.PosY + e.VelY
-		e.VelY = e.VelY + gravity
-		if e.VelY < 0 {
-			e.VelY = 0
-		}
-
-		// Bordas da tela
-		screenMargin := 400.0
-		if e.PosX > float64(Largura)-float64(imgSize)-screenMargin {
-			e.PosX = float64(Largura) - float64(imgSize) - screenMargin
-			e.VelX = -2
-		}
-		if e.PosX < 0 {
-			e.PosX = 0
-			e.VelX = 2
-		}
-		if e.PosY < 0 {
-			e.PosY = 0
-			e.VelY = 50
-		}
-		chao := float64(Altura - imgSize)
-		if e.PosY > chao {
-			e.PosY = chao
-			e.VelY = 0
-		}
-
-		count = count + 1
+func (g *Game) ParseCommands(m message.Message, v *Viewer) {
+	// Processa os comandos
+	switch m.Text {
+	case "!jump":
+		log.D("%s is jumping!", m.UID)
+		v.VelY = -100
 	}
+}
 
-	j.Count++
+func (g *Game) Update() error {
+	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+		log.I("closing ...")
+		return ebiten.Termination
+	}
+	g.Autosave()
+	g.CheckNewMessages()
+	for _, uid := range g.UIDs {
+		v := g.Viewers[uid]
+		v.Update(g)
+	}
+	g.Count++
 	return nil
 }
 
-func (j *Jogo) Draw(tela *ebiten.Image) {
-	tela.Fill(CorVerde)
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.Fill(ColorGreen)
 	if img != nil {
-		for _, uid := range j.UIDs {
-			e := j.Expectadores[uid]
-			fx, fy := 0, e.SpriteFrame*imgSize
-
-			opts := &ebiten.DrawImageOptions{}
-			opts.GeoM.Translate(e.PosX, e.PosY)
-			frameClip := image.Rect(fx, fy, fx+imgSize, fy+imgSize)
-			frame := e.Sprite.SubImage(frameClip).(*ebiten.Image)
-			tela.DrawImage(frame, opts)
-			text.Draw(tela, e.Nome, face, int(e.PosX), int(e.PosY), color.Black)
-			text.Draw(tela, e.Nome, face, int(e.PosX)+1, int(e.PosY)+1, color.White)
+		for _, uid := range g.UIDs {
+			e := g.Viewers[uid]
+			e.Draw(screen)
 		}
 	}
 }
 
-func (j *Jogo) Layout(outsideWidth, outsideHeight int) (screenW, screenH int) {
-	return Largura, Altura
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenW, screenH int) {
+	return Width, Height
 }
 
-func New() *Jogo {
-	j := Jogo{}
-	j.Expectadores = make(map[string]*Expectador)
-	return &j
+func New() *Game {
+	g := Game{}
+	g.Viewers = make(map[string]*Viewer)
+	return &g
 }
 
 func main() {
@@ -319,21 +217,21 @@ func main() {
 	var err error
 	yt, err = youtube.New()
 	if err != nil {
-		log.E("jogo-da-live: não foi possível iniciar conexão com Youtube: %v", err)
+		log.E("jogo-da-live: unable to initialize Youtube client: %v", err)
 	}
 	tw, err = twitch.New()
 	if err != nil {
-		log.E("jogo-da-live: não foi possível iniciar conexão com Twitch: %v", err)
+		log.E("jogo-da-live: unable to initialize Twitch client: %v", err)
 	}
 
-	ebiten.SetWindowSize(Largura, Altura)
-	ebiten.SetWindowTitle("Jogo da Live!")
+	ebiten.SetWindowSize(Width, Height)
+	ebiten.SetWindowTitle("Game da Live!")
 
-	log.I("Jogo da Live iniciando ...")
-	j := New()
-	j.Autoload()
+	log.I("game initialized")
+	g := New()
+	g.Autoload()
 
-	if err := ebiten.RunGame(j); err != nil {
+	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
 }
