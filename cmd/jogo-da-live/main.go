@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"math/rand"
+	"net/http"
 	"os"
 	"path"
 
@@ -31,6 +32,8 @@ var (
 	AutoSaveDelay = 60 * 10
 
 	ColorGreen = color.RGBA{0, 0xff, 0, 0xff}
+
+	Port string
 )
 
 var (
@@ -58,7 +61,7 @@ func init() {
 
 	tt, err := opentype.Parse(gomono.TTF)
 	if err != nil {
-		panic(fmt.Sprintf("erro ao carregar a fonte: %v", err))
+		panic(fmt.Sprintf("error loading font: %v", err))
 	}
 	face, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    16,
@@ -66,12 +69,13 @@ func init() {
 		Hinting: font.HintingVertical,
 	})
 	if err != nil {
-		panic(fmt.Sprintf("erro ao inicializar a fonte: %v", err))
+		panic(fmt.Sprintf("error initializing font: %v", err))
 	}
 
-	// Opções da linha de comandos
+	// Command line options
 	flag.StringVar(&youtube.LiveId, "youtube-stream", "",
-		"Ativa o chat do Youtube no vídeo id informado")
+		"Enable Youtube chat for the provided video ID")
+	flag.StringVar(&Port, "port", "8080", "HTTP Port to listen to")
 }
 
 type Game struct {
@@ -128,9 +132,6 @@ func (g *Game) Autoload() {
 		g.UIDs = append(g.UIDs, uid)
 	}
 
-	if yt != nil {
-		yt.SetPageToken(g.YoutubePageToken)
-	}
 	log.I("game loaded")
 }
 
@@ -211,11 +212,18 @@ func New() *Game {
 	return &g
 }
 
+func (g *Game) ServeChat(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, g.tempFile())
+}
+
 func main() {
 	flag.Parse()
 
+	g := New()
+	g.Autoload()
+
 	var err error
-	yt, err = youtube.New()
+	yt, err = youtube.New(g.YoutubePageToken)
 	if err != nil {
 		log.E("jogo-da-live: unable to initialize Youtube client: %v", err)
 	}
@@ -228,8 +236,11 @@ func main() {
 	ebiten.SetWindowTitle("Game da Live!")
 
 	log.I("game initialized")
-	g := New()
-	g.Autoload()
+
+	// Listen on http 8080
+	http.HandleFunc("/chat", g.ServeChat)
+	go http.ListenAndServe(":"+Port, nil)
+	log.I("http chat overlay started on port " + Port)
 
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)

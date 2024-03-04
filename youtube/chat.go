@@ -30,7 +30,8 @@ type Client struct {
 	unread   []message.Message
 }
 
-func New() (*Client, error) {
+func New(nextPageToken string) (*Client, error) {
+	log.I("Continuing from page token: %v", nextPageToken)
 	apiKey := os.Getenv("YOUTUBE_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("youtube: environment variable unset: YOUTUBE_API_KEY")
@@ -47,10 +48,11 @@ func New() (*Client, error) {
 	}
 
 	c := &Client{
-		hc:     http.Client{},
-		svc:    svc,
-		apiKey: apiKey,
-		unread: make([]message.Message, 0, 10),
+		hc:            http.Client{},
+		svc:           svc,
+		apiKey:        apiKey,
+		unread:        make([]message.Message, 0, 10),
+		nextPageToken: nextPageToken,
 	}
 	c.goReadTheMessages()
 
