@@ -66,7 +66,7 @@ func init() {
 	face, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    16,
 		DPI:     72,
-		Hinting: font.HintingVertical,
+		Hinting: font.HintingFull,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("error initializing font: %v", err))
@@ -104,8 +104,10 @@ func (g *Game) Autosave() {
 	}
 	defer fd.Close()
 	g.YoutubePageToken = yt.NextPageToken()
+	enc := json.NewEncoder(fd)
+	enc.SetIndent("", "  ")
 
-	if err := json.NewEncoder(fd).Encode(g); err != nil {
+	if err := enc.Encode(g); err != nil {
 		log.E("error serializing data: %v", err)
 		return
 	}

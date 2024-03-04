@@ -10,18 +10,19 @@ import (
 )
 
 type Viewer struct {
-	Name     string
-	Platform string
+	Name     string `json:"name"`
+	Platform string `json:"platform"`
 
-	PosX float64
-	PosY float64
+	PosX float64 `json:"posx"`
+	PosY float64 `json:"posy"`
 
-	VelX float64
-	VelY float64
+	VelX float64 `json:"velx"`
+	VelY float64 `json:"vely"`
 
-	Sprite      *ebiten.Image `json:"-"`
-	SpriteColor color.Color
-	SpriteFrame int
+	Sprite *ebiten.Image `json:"-"`
+
+	SpriteColor color.Color `json:"spriteColor"`
+	SpriteFrame int         `json:"spriteFrame"`
 }
 
 func (v *Viewer) Update(g *Game) {
