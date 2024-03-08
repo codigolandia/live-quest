@@ -38,11 +38,13 @@ na tela.
 - [x] Criar um pixel art do Gopher
 - [x] Movimentar o expectador na tela
 - [x] Atribuir cores aleatórias aos Gophers
-- [ ] Adicionar recursos de XP
-  - [ ] Adicionar o XP ao jogador durante a live
-  - [ ] Adicionar HP
-- [-] Adicionar os comandos de chat
+- [x] Adicionar recursos de XP
+  - [x] Adicionar o XP ao jogador durante a live
+  - [x] Adicionar HP
+- [x] Adicionar um placar dos jogadores
+- [ ] Adicionar os comandos de chat
   - [x] `!jump` para pular
+  - [x] `!color` para randomizar a cor do personagem
   - [ ] `!fight` para iniciar uma luta
 - [ ] Adicionar a plataforma ao lado do nome do expectador
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador

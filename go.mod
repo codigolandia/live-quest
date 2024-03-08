@@ -3,6 +3,7 @@ module github.com/codigolandia/jogo-da-live
 go 1.21.6
 
 require (
+	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/ebiten/v2 v2.6.3
 	golang.org/x/image v0.15.0
 	google.golang.org/api v0.157.0

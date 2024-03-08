@@ -11,14 +11,18 @@ type GopherImage struct {
 	clr *color.RGBA
 }
 
+func RandomColor() *color.RGBA {
+	return &color.RGBA{
+		R: uint8(rand.Intn(255)),
+		G: uint8(rand.Intn(126)),
+		B: uint8(rand.Intn(255)),
+		A: 0xff,
+	}
+}
+
 func (gopher *GopherImage) Color() color.Color {
 	if gopher.clr == nil {
-		gopher.clr = &color.RGBA{
-			R: uint8(rand.Intn(255)),
-			G: uint8(rand.Intn(126)),
-			B: uint8(rand.Intn(255)),
-			A: 0xff,
-		}
+		panic("NOooooo")
 	}
 	return gopher.clr
 }
