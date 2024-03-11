@@ -1,4 +1,4 @@
-# jogo-da-live
+# live-quest
 
 ![Gopher](cmd/jogo-da-live/assets/img/gopher_standing.gif)
 
@@ -21,7 +21,7 @@ recursos exclusivos para membros/apoiadores do canal.
 
 ## Como funciona?
 
-O programa em `cmd/jogo-da-live` irá desenhar uma janela com um fundo verde,
+O programa em `cmd/live-quest` irá desenhar uma janela com um fundo verde,
 que é adicionada ao OBS e possui o filtro de *chroma key* aplicado.
 
 Este programa se conecta aos chats da transmissão ao vivo e utiliza esta
@@ -30,6 +30,7 @@ na tela.
 
 ## TODO
 
+- [ ] Rename: trocar as referências de `jogo-da-live` para `live-quest`
 - [x] Ler os expectadores do Youtube
 - [x] Ler os expectadores do Twitch
 - [x] Enviar o PONG ao receber um PING da Twitch
@@ -46,7 +47,7 @@ na tela.
   - [x] `!jump` para pular
   - [x] `!color` para randomizar a cor do personagem
   - [ ] `!fight` para iniciar uma luta
-- [ ] Adicionar a plataforma ao lado do nome do expectador
+- [ ] Adicionar a plataforma (Youtube, Twitch) ao lado do nome do expectador
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
 - [x] Otimizar o chat do Youtube
 - [ ] Escrever o chat via Overlay no OBS
