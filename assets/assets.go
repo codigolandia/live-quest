@@ -4,6 +4,8 @@ import (
 	"embed"
 	"image"
 
+	_ "image/png"
+
 	"github.com/codigolandia/jogo-da-live/log"
 	"github.com/hajimehoshi/ebiten/v2"
 )

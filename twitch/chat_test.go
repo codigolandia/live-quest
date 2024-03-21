@@ -1,6 +1,7 @@
 package twitch
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 	"time"
@@ -8,7 +9,16 @@ import (
 	"github.com/codigolandia/jogo-da-live/log"
 )
 
+var integrationTest bool
+
+func init() {
+	flag.BoolVar(&integrationTest, "it", false, "Run integration tests")
+}
+
 func TestNewClient(t *testing.T) {
+	if !integrationTest {
+		t.Skip("Integration tests disabled, skipping...")
+	}
 	log.LogLevel = log.Debug
 	c, err := New()
 	if err != nil {
