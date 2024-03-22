@@ -12,6 +12,7 @@ import (
 
 type Viewer struct {
 	Name     string `json:"name"`
+	UID      string `json:"uid"`
 	Platform string `json:"platform"`
 
 	HP int `json:"hp"`
@@ -50,9 +51,7 @@ func (v *Viewer) Stop() {
 		img: assets.GopherStanding,
 		clr: v.SpriteColor,
 	})
-	if v.SpriteFrame == 0 {
-		v.SpriteFrame = rand.Int() % assets.GopherStandingFrames
-	}
+	v.SpriteFrame = rand.Int() % assets.GopherStandingFrames
 	v.SpriteFrameCount = assets.GopherStandingFrames
 }
 
@@ -78,14 +77,31 @@ func (v *Viewer) WalkRight() {
 	v.SpriteFrameCount = assets.GopherWalkingRightFrames
 }
 
-func (v *Viewer) Update(g *Game) {
+func (v *Viewer) Damage(value int) {
+	v.HP -= value
+}
+
+var baseDamage = 10
+
+func (v *Viewer) Attack(other *Viewer) int {
+	if v.XP > other.XP {
+		dmg := float64(baseDamage) * (float64(v.XP) / float64(other.XP))
+		return min(int(dmg), 25) - rand.Intn(6)
+	}
+	return baseDamage + rand.Intn(16)
+}
+
+func (v *Viewer) UpdateAnimation(g *Game) {
 	if g.Count%6 == 0 {
 		v.SpriteFrame++
 		if v.SpriteFrame >= v.SpriteFrameCount {
 			v.SpriteFrame = 0
 		}
 	}
+}
 
+func (v *Viewer) Update(g *Game) {
+	v.UpdateAnimation(g)
 	if g.Count%200 == 0 {
 		switch rand.Intn(3) {
 		case 0:
@@ -179,6 +195,11 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 // ByXP sorts a list of viewers by their XP.
 type ByXP []*Viewer
 
-func (v ByXP) Len() int           { return len(v) }
-func (v ByXP) Less(i, j int) bool { return v[i].XP >= v[j].XP }
-func (v ByXP) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v ByXP) Len() int { return len(v) }
+func (v ByXP) Less(i, j int) bool {
+	if v[i].XP == v[j].XP {
+		return v[i].Name >= v[j].Name
+	}
+	return v[i].XP >= v[j].XP
+}
+func (v ByXP) Swap(i, j int) { v[i], v[j] = v[j], v[i] }

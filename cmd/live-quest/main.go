@@ -61,10 +61,20 @@ func init() {
 	flag.StringVar(&Port, "port", "8080", "HTTP Port to listen to")
 }
 
+type FightState struct {
+	Player1     string `json:"player1"`
+	Player2     string `json:"player2"`
+	CurrentTurn string `json:"currentTurn"`
+}
+
 type Game struct {
 	Viewers     map[string]*Viewer `json:"viewers"`
 	UIDs        []string           `json:"-"`
 	ChatHistory []message.Message  `json:"chatHistory"`
+
+	FightingQueue map[string]bool `json:"fightingQueue"`
+
+	FightState FightState `json:"fightState"`
 
 	YoutubePageToken string `json:"youtubePageToken"`
 	Count            int    `json:"-"`
@@ -118,7 +128,17 @@ func (g *Game) Autoload() {
 			clr: v.SpriteColor,
 		}
 		v.Sprite = ebiten.NewImageFromImage(gi)
+		v.UID = uid
+		v.HP = 100
 		g.UIDs = append(g.UIDs, uid)
+	}
+
+	// Sanity Check
+	if g.FightingQueue == nil {
+		g.FightingQueue = make(map[string]bool)
+	}
+	if g.Viewers == nil {
+		g.Viewers = make(map[string]*Viewer)
 	}
 
 	log.I("game loaded")
@@ -142,6 +162,7 @@ func (g *Game) CheckNewMessages() {
 			v = NewViewer()
 			v.Name = m.Author
 			v.Platform = m.Platform
+			v.UID = m.UID
 			v.PosY = float64(Height) - float64(gopherSize)
 			v.PosX = float64(rand.Int() * gopherSize)
 
@@ -158,11 +179,14 @@ func (g *Game) ParseCommands(m message.Message, v *Viewer) {
 	// Processa os comandos
 	switch {
 	case strings.Contains(m.Text, "!jump"):
-		log.D("%s is jumping!", m.UID)
+		log.D("%s is jumping!", m.Author)
 		v.VelY = -100
 	case strings.Contains(m.Text, "!color"):
-		log.D("%s is changing the Gopher color!", m.UID)
+		log.D("%s is changing the Gopher color!", m.Author)
 		v.SpriteColor = RandomColor()
+	case strings.Contains(m.Text, "!fight"):
+		log.D("%s is looking for a fight!", m.Author)
+		g.FightingQueue[m.UID] = true
 	}
 }
 
@@ -175,22 +199,105 @@ func (g *Game) Update() error {
 	g.CheckNewMessages()
 	for _, uid := range g.UIDs {
 		v := g.Viewers[uid]
-		v.Update(g)
+		if g.FightState.CurrentTurn == "" {
+			v.Update(g)
+		} else {
+			v.UpdateAnimation(g)
+		}
 	}
+	g.FightRound()
 	g.Count++
 	return nil
+}
+
+func (g *Game) UpdateFightPositions() {
+	p1 := g.Viewers[g.FightState.Player1]
+	p1.WalkRight()
+	p1.VelX = 0
+	p1.PosX = 1000
+
+	p2 := g.Viewers[g.FightState.Player2]
+	p2.WalkLeft()
+	p2.VelX = 0
+	p2.PosX = 1200
+
+	crowd := make([]*Viewer, 0, len(g.Viewers))
+	for uid, _ := range g.Viewers {
+		if uid == p1.UID || uid == p2.UID {
+			continue
+		}
+		v := g.Viewers[uid]
+		crowd = append(crowd, v)
+	}
+	sort.Sort(ByXP(crowd))
+
+	dx := 800/len(g.Viewers) + 1
+	px := 64
+	for i := range crowd {
+		v := crowd[i]
+		v.PosX = float64(px)
+		v.WalkRight()
+		v.VelX = 0
+		px = px + dx
+	}
+}
+
+func (g *Game) RemoveFromQueue(p1, p2 string) {
+	delete(g.FightingQueue, p1)
+	delete(g.FightingQueue, p2)
+}
+
+func (g *Game) FightRound() {
+	if len(g.FightingQueue) < 2 && g.FightState.CurrentTurn == "" {
+		return
+	}
+	if g.Count%60 != 0 {
+		return
+	}
+	if g.FightState.CurrentTurn == "" {
+		log.D("fight: initializing fight ...")
+		fighters := g.SortFighters()
+		g.FightState.Player1 = fighters[0].UID
+		g.FightState.Player2 = fighters[1].UID
+		g.FightState.CurrentTurn = g.FightState.Player2
+		g.RemoveFromQueue(fighters[0].UID, fighters[1].UID)
+		g.UpdateFightPositions()
+	}
+
+	log.D("fight: %s vs %s...", g.FightState.Player1, g.FightState.Player2)
+	attacker := g.Viewers[g.FightState.CurrentTurn]
+	defender := g.Viewers[g.FightState.Player1]
+	if g.FightState.CurrentTurn == g.FightState.Player1 {
+		defender = g.Viewers[g.FightState.Player2]
+	}
+
+	dmg := attacker.Attack(defender)
+	log.D("fight: %s damaged %s by %d", attacker.Name, defender.Name, dmg)
+	defender.Damage(dmg)
+	g.FightState.CurrentTurn = defender.UID
+
+	if defender.HP <= 0 {
+		log.D("fight: fight is over: %v won!", attacker.Name)
+		g.FightState = FightState{}
+		defender.HP = 100
+		defender.XP += 20
+		attacker.HP = 100
+		attacker.XP += 50
+		attacker.VelY = -150
+	}
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(ColorGreen)
 	for _, uid := range g.UIDs {
-		e := g.Viewers[uid]
-		e.Draw(screen)
+		v := g.Viewers[uid]
+		v.Draw(screen)
 	}
 	g.DrawLeaderBoard(screen)
 }
 
 func (g *Game) DrawLeaderBoard(screen *ebiten.Image) {
+	// Top 5
 	viewers := make([]*Viewer, 0, len(g.UIDs))
 	for _, uid := range g.UIDs {
 		viewers = append(viewers, g.Viewers[uid])
@@ -209,6 +316,30 @@ func (g *Game) DrawLeaderBoard(screen *ebiten.Image) {
 		px = float64(Width) - float64(txtLen)
 		DrawTextAt(screen, txt, px, py)
 	}
+	// Fighting queue
+	py += 24
+	px = float64(Width) - 350
+	if len(g.FightingQueue) > 0 {
+		fighters := g.SortFighters()
+		py += 24
+		DrawTextAt(screen, "** Fighting Queue **", px, py)
+		py += 24
+		for _, v := range fighters {
+			DrawTextAt(screen, v.Name, px, py)
+			py += 24
+		}
+	}
+}
+
+func (g *Game) SortFighters() []*Viewer {
+	fighters := make([]*Viewer, 0, len(g.FightingQueue))
+	for uid, _ := range g.FightingQueue {
+		v := g.Viewers[uid]
+		v.UID = uid // TODO(ronoaldo): remove
+		fighters = append(fighters, v)
+	}
+	sort.Sort(ByXP(fighters))
+	return fighters
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenW, screenH int) {
@@ -218,6 +349,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenW, screenH int) {
 func New() *Game {
 	g := Game{}
 	g.Viewers = make(map[string]*Viewer)
+	g.FightingQueue = make(map[string]bool)
 	return &g
 }
 
