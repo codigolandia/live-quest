@@ -50,7 +50,9 @@ func (v *Viewer) Stop() {
 		img: assets.GopherStanding,
 		clr: v.SpriteColor,
 	})
-	v.SpriteFrame = rand.Int() % assets.GopherStandingFrames
+	if v.SpriteFrame == 0 {
+		v.SpriteFrame = rand.Int() % assets.GopherStandingFrames
+	}
 	v.SpriteFrameCount = assets.GopherStandingFrames
 }
 
@@ -59,7 +61,9 @@ func (v *Viewer) WalkLeft() {
 		img: assets.GopherWalkingLeft,
 		clr: v.SpriteColor,
 	})
-	v.SpriteFrame = rand.Int() % assets.GopherWalkingLeftFrames
+	if v.SpriteFrame == 0 {
+		v.SpriteFrame = rand.Int() % assets.GopherWalkingLeftFrames
+	}
 	v.SpriteFrameCount = assets.GopherWalkingLeftFrames
 }
 
@@ -68,7 +72,9 @@ func (v *Viewer) WalkRight() {
 		img: assets.GopherWalkingRight,
 		clr: v.SpriteColor,
 	})
-	v.SpriteFrame = rand.Int() % assets.GopherWalkingRightFrames
+	if v.SpriteFrame == 0 {
+		v.SpriteFrame = rand.Int() % assets.GopherWalkingRightFrames
+	}
 	v.SpriteFrameCount = assets.GopherWalkingRightFrames
 }
 

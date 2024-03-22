@@ -113,7 +113,6 @@ func (g *Game) Autoload() {
 
 	for uid := range g.Viewers {
 		v := g.Viewers[uid]
-		v.SpriteColor = &ColorGopherBlue
 		gi := &GopherImage{
 			img: assets.GopherStanding,
 			clr: v.SpriteColor,
@@ -199,7 +198,11 @@ func (g *Game) DrawLeaderBoard(screen *ebiten.Image) {
 	sort.Sort(ByXP(viewers))
 
 	px, py := float64(Width-380), 12.0
-	for _, v := range viewers[:5] {
+	topFive := viewers
+	if len(viewers) > 5 {
+		topFive = viewers[:5]
+	}
+	for _, v := range topFive {
 		txt := fmt.Sprintf("%v [%02d] %04d XP\n", v.Name, v.Level(), v.XP)
 		txtLen := len(txt) * pixelPerChar
 		py += 24
