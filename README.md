@@ -30,7 +30,7 @@ na tela.
 
 ## TODO
 
-- [ ] Rename: trocar as referências do antigo nome para `live-quest`
+- [x] Rename: trocar as referências do antigo nome para `live-quest`
 - [x] Ler os expectadores do Youtube
 - [x] Ler os expectadores do Twitch
 - [x] Enviar o PONG ao receber um PING da Twitch
@@ -47,10 +47,11 @@ na tela.
   - [x] `!jump` para pular
   - [x] `!color` para randomizar a cor do personagem
   - [ ] `!fight` para iniciar uma luta
-- [ ] Adicionar a plataforma (Youtube, Twitch) ao lado do nome do expectador
+- [ ] Adicionar a plataforma (Youtube, Twitch) como cor ao lado do nome do personagem
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
 - [x] Otimizar o chat do Youtube
 - [ ] Escrever o chat via Overlay no OBS
+- [ ] Criar uma visão isomérica para os Gophers não ficarem muito sobrepostos
 
 ### Poderes e Powerups
 
