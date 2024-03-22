@@ -1,6 +1,6 @@
 # live-quest
 
-![Gopher](cmd/jogo-da-live/assets/img/gopher_standing.gif)
+![Gopher](assets/img/gopher_standing.gif)
 
 Este é o nosso primeiro projeto na Codigolândia: um jogo desenvolvido em **Go**
 e que pode ser jogado durante as lives!
@@ -30,7 +30,7 @@ na tela.
 
 ## TODO
 
-- [ ] Rename: trocar as referências de `jogo-da-live` para `live-quest`
+- [ ] Rename: trocar as referências do antigo nome para `live-quest`
 - [x] Ler os expectadores do Youtube
 - [x] Ler os expectadores do Twitch
 - [x] Enviar o PONG ao receber um PING da Twitch

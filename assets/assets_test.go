@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/codigolandia/jogo-da-live/assets"
+	"github.com/codigolandia/live-quest/assets"
 )
 
 func TestReadFiles(t *testing.T) {

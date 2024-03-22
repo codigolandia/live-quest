@@ -6,7 +6,7 @@ import (
 	"image/color"
 	"math/rand"
 
-	"github.com/codigolandia/jogo-da-live/assets"
+	"github.com/codigolandia/live-quest/assets"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 

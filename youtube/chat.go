@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/codigolandia/jogo-da-live/log"
-	"github.com/codigolandia/jogo-da-live/message"
+	"github.com/codigolandia/live-quest/log"
+	"github.com/codigolandia/live-quest/message"
 	"google.golang.org/api/option"
 	yt "google.golang.org/api/youtube/v3"
 )

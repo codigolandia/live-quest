@@ -12,11 +12,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/codigolandia/jogo-da-live/assets"
-	"github.com/codigolandia/jogo-da-live/log"
-	"github.com/codigolandia/jogo-da-live/message"
-	"github.com/codigolandia/jogo-da-live/twitch"
-	"github.com/codigolandia/jogo-da-live/youtube"
+	"github.com/codigolandia/live-quest/assets"
+	"github.com/codigolandia/live-quest/log"
+	"github.com/codigolandia/live-quest/message"
+	"github.com/codigolandia/live-quest/twitch"
+	"github.com/codigolandia/live-quest/youtube"
 	"github.com/hajimehoshi/bitmapfont/v3"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
@@ -71,7 +71,7 @@ type Game struct {
 }
 
 func (g *Game) tempFile() string {
-	return path.Join(os.TempDir(), "jogo-da-live.json")
+	return path.Join(os.TempDir(), "live-quest.json")
 }
 
 func (g *Game) Autosave() {
@@ -258,15 +258,15 @@ func main() {
 	var err error
 	yt, err = youtube.New(g.YoutubePageToken)
 	if err != nil {
-		log.E("jogo-da-live: unable to initialize Youtube client: %v", err)
+		log.E("live-quest: unable to initialize Youtube client: %v", err)
 	}
 	tw, err = twitch.New()
 	if err != nil {
-		log.E("jogo-da-live: unable to initialize Twitch client: %v", err)
+		log.E("live-quest: unable to initialize Twitch client: %v", err)
 	}
 
 	ebiten.SetWindowSize(Width, Height)
-	ebiten.SetWindowTitle("Game da Live!")
+	ebiten.SetWindowTitle("LiveQuest")
 
 	log.I("game initialized")
 

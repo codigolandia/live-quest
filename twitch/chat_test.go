@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codigolandia/jogo-da-live/log"
+	"github.com/codigolandia/live-quest/log"
 )
 
 var integrationTest bool

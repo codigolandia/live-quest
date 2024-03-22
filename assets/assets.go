@@ -6,7 +6,7 @@ import (
 
 	_ "image/png"
 
-	"github.com/codigolandia/jogo-da-live/log"
+	"github.com/codigolandia/live-quest/log"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
