@@ -13,6 +13,7 @@ var integrationTest bool
 
 func init() {
 	flag.BoolVar(&integrationTest, "it", false, "Run integration tests")
+	Channel = "codigolandia"
 }
 
 func TestNewClient(t *testing.T) {

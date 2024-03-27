@@ -163,7 +163,7 @@ func (g *Game) CheckNewMessages() {
 			v.Name = m.Author
 			v.Platform = m.Platform
 			v.UID = m.UID
-			v.PosY = float64(Height) - float64(gopherSize)
+			v.PosY = float64(Height) / 2
 			v.PosX = float64(rand.Int() * gopherSize)
 
 			g.Viewers[m.UID] = v

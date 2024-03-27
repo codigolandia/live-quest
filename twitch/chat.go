@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"net"
 	"net/textproto"
@@ -14,6 +15,11 @@ import (
 )
 
 var addr = "irc.chat.twitch.tv:6667"
+var Channel = ""
+
+func init() {
+	flag.StringVar(&Channel, "twitch-channel", "codigolandia", "The Twitch channel to connect to.")
+}
 
 type Client struct {
 	conn   net.Conn
@@ -24,6 +30,9 @@ type Client struct {
 }
 
 func New() (c *Client, err error) {
+	if Channel == "" {
+		return nil, fmt.Errorf("twitch: no channel informed; missing --twitch-channel parameter?")
+	}
 	log.I("connecting to twitch IRC server at %s", addr)
 	c = &Client{}
 	c.unread = make([]message.Message, 0, 10)
@@ -37,7 +46,7 @@ func New() (c *Client, err error) {
 	log.D("tcp connection stablished")
 
 	log.D("sending NICK command (err=%v)", c.send("NICK justinfan12345"))
-	log.D("joining channel (err=%v)", c.send("JOIN #codigolandia"))
+	log.D("joining channel (err=%v)", c.send("JOIN #"+Channel))
 	return c, nil
 }
 
