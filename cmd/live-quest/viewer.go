@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"math/rand"
 
 	"github.com/codigolandia/live-quest/assets"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
 type Viewer struct {
@@ -24,11 +24,9 @@ type Viewer struct {
 	VelX float64 `json:"velx"`
 	VelY float64 `json:"vely"`
 
-	Sprite      *ebiten.Image `json:"-"`
-	SpriteColor *color.RGBA   `json:"spriteColor"`
-
-	SpriteFrameCount int `json:"spriteFrameCount"`
-	SpriteFrame      int `json:"spriteFrame"`
+	Animation      string      `json:"animation"`
+	AnimationFrame int         `json:"animationFrame"`
+	SpriteColor    *color.RGBA `json:"spriteColor"`
 }
 
 func NewViewer() *Viewer {
@@ -46,35 +44,35 @@ func (v *Viewer) Level() int {
 	return v.XP / XPPerLevel
 }
 
+func (v *Viewer) CurrAnim() *assets.Animation {
+	if v.Animation == "" {
+		v.Animation = "standing"
+	}
+	a := assets.Bundles["gopher"][v.Animation]
+	return a
+}
+
+func (v *Viewer) CurrAnimFrames() int {
+	return len(v.CurrAnim().Frames)
+}
+
 func (v *Viewer) Stop() {
-	v.Sprite = ebiten.NewImageFromImage(&GopherImage{
-		img: assets.GopherStanding,
-		clr: v.SpriteColor,
-	})
-	v.SpriteFrame = rand.Int() % assets.GopherStandingFrames
-	v.SpriteFrameCount = assets.GopherStandingFrames
+	v.Animation = "standing"
+	v.AnimationFrame = rand.Int() % v.CurrAnimFrames()
 }
 
 func (v *Viewer) WalkLeft() {
-	v.Sprite = ebiten.NewImageFromImage(&GopherImage{
-		img: assets.GopherWalkingLeft,
-		clr: v.SpriteColor,
-	})
-	if v.SpriteFrame == 0 {
-		v.SpriteFrame = rand.Int() % assets.GopherWalkingLeftFrames
+	v.Animation = "walking_left"
+	if v.AnimationFrame == 0 {
+		v.AnimationFrame = rand.Int() % v.CurrAnimFrames()
 	}
-	v.SpriteFrameCount = assets.GopherWalkingLeftFrames
 }
 
 func (v *Viewer) WalkRight() {
-	v.Sprite = ebiten.NewImageFromImage(&GopherImage{
-		img: assets.GopherWalkingRight,
-		clr: v.SpriteColor,
-	})
-	if v.SpriteFrame == 0 {
-		v.SpriteFrame = rand.Int() % assets.GopherWalkingRightFrames
+	v.Animation = "walking_right"
+	if v.AnimationFrame == 0 {
+		v.AnimationFrame = rand.Int() % v.CurrAnimFrames()
 	}
-	v.SpriteFrameCount = assets.GopherWalkingRightFrames
 }
 
 func (v *Viewer) Damage(value int) {
@@ -93,9 +91,10 @@ func (v *Viewer) Attack(other *Viewer) int {
 
 func (v *Viewer) UpdateAnimation(g *Game) {
 	if g.Count%6 == 0 {
-		v.SpriteFrame++
-		if v.SpriteFrame >= v.SpriteFrameCount {
-			v.SpriteFrame = 0
+		a := v.CurrAnim()
+		v.AnimationFrame++
+		if v.AnimationFrame >= len(a.Frames) {
+			v.AnimationFrame = 0
 		}
 	}
 }
@@ -148,13 +147,16 @@ func (v *Viewer) Update(g *Game) {
 }
 
 func (v *Viewer) Draw(screen *ebiten.Image) {
-	fx, fy := 0, v.SpriteFrame*gopherSize
-
-	opts := &ebiten.DrawImageOptions{}
+	frame := v.CurrAnim().Frames[v.AnimationFrame]
+	opts := &colorm.DrawImageOptions{}
 	opts.GeoM.Translate(v.PosX, v.PosY)
-	frameClip := image.Rect(fx, fy, fx+gopherSize, fy+gopherSize)
-	frame := v.Sprite.SubImage(frameClip).(*ebiten.Image)
-	screen.DrawImage(frame, opts)
+	colorTx := colorm.ColorM{}
+	colorTx.ScaleWithColor(v.SpriteColor)
+	colorm.DrawImage(screen, frame, colorTx, opts)
+	if v.AnimationFrame < len(v.CurrAnim().Skins) {
+		colorTx.Reset()
+		colorm.DrawImage(screen, v.CurrAnim().Skins[v.AnimationFrame], colorTx, opts)
+	}
 
 	// Operations
 	hpBarH := float64(8)

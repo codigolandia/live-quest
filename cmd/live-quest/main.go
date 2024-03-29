@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/codigolandia/live-quest/assets"
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
 	"github.com/codigolandia/live-quest/twitch"
@@ -123,11 +122,6 @@ func (g *Game) Autoload() {
 
 	for uid := range g.Viewers {
 		v := g.Viewers[uid]
-		gi := &GopherImage{
-			img: assets.GopherStanding,
-			clr: v.SpriteColor,
-		}
-		v.Sprite = ebiten.NewImageFromImage(gi)
 		v.UID = uid
 		v.HP = 100
 		g.UIDs = append(g.UIDs, uid)
@@ -335,7 +329,6 @@ func (g *Game) SortFighters() []*Viewer {
 	fighters := make([]*Viewer, 0, len(g.FightingQueue))
 	for uid, _ := range g.FightingQueue {
 		v := g.Viewers[uid]
-		v.UID = uid // TODO(ronoaldo): remove
 		fighters = append(fighters, v)
 	}
 	sort.Sort(ByXP(fighters))

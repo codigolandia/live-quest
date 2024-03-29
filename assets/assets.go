@@ -11,30 +11,17 @@ import (
 )
 
 var (
-	//go:embed img
+	//go:embed img animations
 	Assets embed.FS
 )
 
 var (
-	GopherStanding       image.Image
-	GopherStandingFrames = 5
-
-	GopherWalkingLeft       image.Image
-	GopherWalkingLeftFrames = 8
-
-	GopherWalkingRight       image.Image
-	GopherWalkingRightFrames = 8
-
-	BarBG *ebiten.Image
-
+	BarBG   *ebiten.Image
 	HPBarFG *ebiten.Image
 	XPBarFG *ebiten.Image
 )
 
 func init() {
-	GopherStanding = LoadImg("img/gopher_standing.png")
-	GopherWalkingLeft = LoadImg("img/gopher_walking_left.png")
-	GopherWalkingRight = LoadImg("img/gopher_walking_right.png")
 	BarBG = LoadEbitenImg("img/hp_bar_bg.png")
 	HPBarFG = LoadEbitenImg("img/hp_bar_fg.png")
 	XPBarFG = LoadEbitenImg("img/xp_bar_fg.png")
