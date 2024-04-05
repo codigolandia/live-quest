@@ -19,12 +19,18 @@ var (
 	BarBG   *ebiten.Image
 	HPBarFG *ebiten.Image
 	XPBarFG *ebiten.Image
+
+	YoutubeIcon *ebiten.Image
+	TwitchIcon  *ebiten.Image
 )
 
 func init() {
 	BarBG = LoadEbitenImg("img/hp_bar_bg.png")
 	HPBarFG = LoadEbitenImg("img/hp_bar_fg.png")
 	XPBarFG = LoadEbitenImg("img/xp_bar_fg.png")
+
+	YoutubeIcon = LoadEbitenImg("img/youtube_icon.png")
+	TwitchIcon = LoadEbitenImg("img/twitch_icon.png")
 }
 func LoadImg(path string) image.Image {
 	r, _ := Assets.Open(path)

@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/codigolandia/live-quest/assets"
+	"github.com/codigolandia/live-quest/message"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
@@ -170,6 +171,15 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 	barOpts.GeoM.Scale(float64(v.HP)/100.0, 1)
 	barOpts.GeoM.Translate(v.PosX, v.PosY-(textScaleY*12)-hpBarH)
 	screen.DrawImage(assets.HPBarFG, barOpts)
+
+	// Draw Platform Icon
+	iconOpts := &ebiten.DrawImageOptions{}
+	iconOpts.GeoM.Translate(v.PosX-18, v.PosY-40)
+	if v.Platform == message.PlatformYoutube {
+		screen.DrawImage(assets.YoutubeIcon, iconOpts)
+	} else {
+		screen.DrawImage(assets.TwitchIcon, iconOpts)
+	}
 
 	// Draw XP Bar
 	barOpts = &ebiten.DrawImageOptions{}

@@ -47,7 +47,7 @@ na tela.
   - [x] `!jump` para pular
   - [x] `!color` para randomizar a cor do personagem
   - [ ] `!fight` para iniciar uma luta
-- [ ] Adicionar a plataforma (Youtube, Twitch) como cor ao lado do nome do personagem
+- [x] Adicionar a plataforma (Youtube, Twitch) como icone ao lado do nome do personagem
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS
