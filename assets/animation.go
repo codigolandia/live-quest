@@ -37,7 +37,6 @@ func LoadAnimation(path string) (bundle Bundle, err error) {
 	matches = append(matches, skins...)
 	for _, f := range matches {
 		pathParts := strings.Split(f, "/")
-		fmt.Printf("loading %v, pathParts=%v\n", f, pathParts)
 		if len(pathParts) != 4 {
 			return nil, fmt.Errorf("animation: invalid path parts: %#v", pathParts)
 		}
