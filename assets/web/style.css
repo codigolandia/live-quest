@@ -1,0 +1,23 @@
+body {
+	margin: 0px;
+	padding: 0px;
+	background: #000;
+}
+
+#chat-overlay {
+	width: 100%;
+	height: 100%;
+	color: white;
+	font-family: monospace;
+	font-size: 18pt;
+	font-weight: 500;
+}
+
+.author {
+	font-weight: bold;
+}
+
+.message {
+	background-color: rgba(0, 0, 0, 0.4);
+	padding: 4px;
+}

@@ -50,7 +50,7 @@ na tela.
 - [ ] Adicionar a plataforma (Youtube, Twitch) como cor ao lado do nome do personagem
 - [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
 - [x] Otimizar o chat do Youtube
-- [ ] Escrever o chat via Overlay no OBS
+- [x] Escrever o chat via Overlay no OBS
 - [ ] Criar uma visão isomérica para os Gophers não ficarem muito sobrepostos
 
 ### Poderes e Powerups

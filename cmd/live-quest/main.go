@@ -11,6 +11,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
@@ -34,7 +35,8 @@ var (
 	ColorGreen      = color.RGBA{0, 0xff, 0, 0xff}
 	ColorGopherBlue = color.RGBA{0x9c, 0xed, 0xff, 0xff}
 
-	Port string
+	Port          string
+	HttpHotReload bool
 )
 
 var (
@@ -57,7 +59,8 @@ func init() {
 	// Command line options
 	flag.StringVar(&youtube.LiveId, "youtube-stream", "",
 		"Enable Youtube chat for the provided video ID")
-	flag.StringVar(&Port, "port", "8080", "HTTP Port to listen to")
+	flag.StringVar(&Port, "http-port", "8080", "HTTP Port to listen to")
+	flag.BoolVar(&HttpHotReload, "http-hot-reload", false, "Hot-reload of http assets when developing")
 }
 
 type FightState struct {
@@ -79,17 +82,22 @@ type Game struct {
 	Count            int    `json:"-"`
 }
 
+var tempFileMu sync.Mutex
+
 func (g *Game) tempFile() string {
 	return path.Join(os.TempDir(), "live-quest.json")
 }
 
 func (g *Game) Autosave() {
+	tempFileMu.Lock()
+	defer tempFileMu.Unlock()
+
 	if g.Count%(AutoSaveDelay) != 0 {
 		return
 	}
 	log.I("auto-saving ...")
 	fileName := g.tempFile()
-	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
+	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		log.E("error opening tempfile: %v", err)
 		return
@@ -346,10 +354,6 @@ func New() *Game {
 	return &g
 }
 
-func (g *Game) ServeChat(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, g.tempFile())
-}
-
 // TODO(ronoaldo): move to own file, like draw.go
 var (
 	pixelPerChar           = 2 * 6
@@ -400,6 +404,7 @@ func main() {
 
 	// Listen on http 8080
 	http.HandleFunc("/chat", g.ServeChat)
+	http.HandleFunc("/", g.ServeAssets)
 	go http.ListenAndServe(":"+Port, nil)
 	log.I("http chat overlay started on port " + Port)
 

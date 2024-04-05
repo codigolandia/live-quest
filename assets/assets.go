@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	//go:embed img animations
+	//go:embed img animations web
 	Assets embed.FS
 )
 
