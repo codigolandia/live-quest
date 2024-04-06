@@ -2,3 +2,4 @@
 /cmd/jogo-da-live/jogo-da-live
 *~
 *.swp
+*.log
