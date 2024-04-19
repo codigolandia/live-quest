@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/codigolandia/live-quest/log"
@@ -14,6 +15,7 @@ import (
 
 type ChallangeType string
 
+const ErrorWrongAnswer = "Wrong answer"
 const (
 	ChallengeStatic ChallangeType = "static"
 )
@@ -21,14 +23,18 @@ const (
 type ChallengeBackend string
 
 const (
-	ChallengeBackendPlayGoDev ChallengeBackend = "playGoDev"
+	ChallengeBackendGoPlayground ChallengeBackend = "goplayground"
 )
 
 type Challenge struct {
+	Code    string
 	Type    ChallangeType
 	Backend ChallengeBackend
 
-	Output string
+	CodeContains string
+	Output       string
+
+	Reward int
 }
 
 type CheckResult struct {
@@ -86,9 +92,14 @@ func (c CheckClient) Call(method string, url string, body io.Reader) (out []byte
 }
 
 func Check(author string, shareUrl string, challenge Challenge) (cr *CheckResult, err error) {
-	if challenge.Backend != ChallengeBackendPlayGoDev {
+	if challenge.Backend != ChallengeBackendGoPlayground {
 		return nil, fmt.Errorf("check: invalid backend: %v", challenge.Backend)
 	}
+
+	// Initializes the validation result
+	cr = &CheckResult{}
+	cr.OK = true
+	cr.Result = "OK"
 
 	checkClient := NewCheckClient()
 	codeSplit := strings.Split(shareUrl, "/")
@@ -99,6 +110,15 @@ func Check(author string, shareUrl string, challenge Challenge) (cr *CheckResult
 	sourceCode, err := checkClient.Call(http.MethodGet, codeURI, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	ok, err := regexp.MatchString(challenge.CodeContains, string(sourceCode))
+	if err != nil {
+		return nil, fmt.Errorf("check: invalid regular expression: %v", err)
+	}
+	if !ok {
+		cr.OK = false
+		cr.Result = ErrorWrongAnswer
 	}
 
 	payload := url.Values{}
@@ -157,13 +177,16 @@ func Check(author string, shareUrl string, challenge Challenge) (cr *CheckResult
 	}
 
 	log.D("check: got '%v'", string(output))
-	cr = &CheckResult{}
-	cr.OK = true
-	cr.Result = "OK"
-	if output != challenge.Output {
+
+	ok, err = regexp.MatchString(challenge.Output, output)
+	if err != nil {
+		return nil, fmt.Errorf("check: invalid regular expression for challenge: %v", err)
+	}
+	if !ok {
 		cr.OK = false
 		cr.Result = fmt.Sprintf("Unexpected output: %v", string(output))
 	}
+
 	return cr, nil
 }
 

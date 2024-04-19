@@ -16,17 +16,48 @@ var testTable = []struct {
 	WantErr bool
 }{
 	{
-		Author:    "ronoaldopereira",
-		URL:       "https://go.dev/play/p/XI2Iph8fANm",
-		Challenge: Challenge{Type: ChallengeStatic, Backend: ChallengeBackendPlayGoDev, Output: "Olá Mundo\n"},
-		Out:       &CheckResult{OK: true, Result: "OK"},
+		Author: "ronoaldopereira",
+		URL:    "https://go.dev/play/p/XI2Iph8fANm",
+		Challenge: Challenge{
+			Type:    ChallengeStatic,
+			Backend: ChallengeBackendGoPlayground,
+			Output:  "^Olá Mundo\n?$",
+		},
+		Out: &CheckResult{OK: true, Result: "OK"},
 	},
 	{
-		Author:    "ronoaldopereira",
-		URL:       "https://go.dev/play/p/apqTw4aZLKk",
-		Challenge: Challenge{Type: ChallengeStatic, Backend: ChallengeBackendPlayGoDev, Output: "Olá Mundo\n"},
-		Out:       nil,
-		WantErr:   true,
+		Author: "ronoaldopereira",
+		URL:    "https://go.dev/play/p/apqTw4aZLKk",
+		Challenge: Challenge{
+			Type:    ChallengeStatic,
+			Backend: ChallengeBackendGoPlayground,
+			Output:  "^Olá Mundo\n?$",
+		},
+		Out:     nil,
+		WantErr: true,
+	},
+	{
+		Author: "rodinei",
+		URL:    "https://www.ronoaldo.com/pode-confiar.exe.bat",
+		Challenge: Challenge{
+			Type:    ChallengeStatic,
+			Backend: ChallengeBackendGoPlayground,
+			Output:  "^Olá Mundo\n?$",
+		},
+		Out:     nil,
+		WantErr: true,
+	},
+	{
+		Author: "ronoaldopereira",
+		URL:    "https://go.dev/play/p/XI2Iph8fANm",
+		Challenge: Challenge{
+			Type:         ChallengeStatic,
+			Backend:      ChallengeBackendGoPlayground,
+			CodeContains: "if",
+			Output:       "^Olá Mundo\n?$",
+		},
+		Out:     &CheckResult{OK: false, Result: "Wrong answer"},
+		WantErr: false,
 	},
 }
 
