@@ -47,8 +47,8 @@ na tela.
   - [x] `!jump` para pular
   - [x] `!color` para randomizar a cor do personagem
   - [x] `!fight` para iniciar uma luta
-  - [ ] `!check` para validar se seu desafio esta correto
-    - [ ] Backend go.dev/play
+  - [x] `!check` para validar se seu desafio esta correto
+    - [x] Backend go.dev/play
 - [x] Adicionar a plataforma (Youtube, Twitch) como icone ao lado do nome do personagem
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS
