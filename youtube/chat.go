@@ -140,7 +140,7 @@ func (c *Client) goReadTheMessages() {
 			c.pollingInterval = d
 
 			// Wait for pollingInterval to be passed before calling again.
-			time.Sleep(max(c.pollingInterval, 3*time.Second))
+			time.Sleep(max(c.pollingInterval, 5*time.Second))
 			log.D("waiting for messages")
 		}
 	}()

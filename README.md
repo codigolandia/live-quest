@@ -46,12 +46,14 @@ na tela.
 - [ ] Adicionar os comandos de chat
   - [x] `!jump` para pular
   - [x] `!color` para randomizar a cor do personagem
-  - [ ] `!fight` para iniciar uma luta
+  - [x] `!fight` para iniciar uma luta
+  - [ ] `!check` para validar se seu desafio esta correto
+    - [ ] Backend go.dev/play
 - [x] Adicionar a plataforma (Youtube, Twitch) como icone ao lado do nome do personagem
-- [ ] Fazer o Gopher desenhar a imagem de perfil do expectador
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS
-- [ ] Criar uma visão isomérica para os Gophers não ficarem muito sobrepostos
+- [ ] Limitar a quantidade de expectadores simultâneos
+- [ ] Implementar o go releaser como Github Action.
 
 ### Poderes e Powerups
 
