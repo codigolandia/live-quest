@@ -75,8 +75,9 @@ type Game struct {
 	ChatHistory []message.Message  `json:"chatHistory"`
 
 	FightingQueue map[string]bool `json:"fightingQueue"`
+	FightState    FightState      `json:"fightState"`
 
-	FightState FightState `json:"fightState"`
+	UsedLinks map[string]struct{} `json:"usedLinks"`
 
 	YoutubePageToken string `json:"youtubePageToken"`
 	Count            int    `json:"-"`
@@ -133,6 +134,9 @@ func (g *Game) Autoload() {
 		v.UID = uid
 		v.HP = 100
 		g.UIDs = append(g.UIDs, uid)
+		if v.CompletedChallenges == nil {
+			v.CompletedChallenges = make(map[string]struct{})
+		}
 	}
 
 	// Sanity Check
@@ -141,6 +145,9 @@ func (g *Game) Autoload() {
 	}
 	if g.Viewers == nil {
 		g.Viewers = make(map[string]*Viewer)
+	}
+	if g.UsedLinks == nil {
+		g.UsedLinks = make(map[string]struct{})
 	}
 
 	log.I("game loaded")
@@ -189,6 +196,53 @@ func (g *Game) ParseCommands(m message.Message, v *Viewer) {
 	case strings.Contains(m.Text, "!fight"):
 		log.D("%s is looking for a fight!", m.Author)
 		g.FightingQueue[m.UID] = true
+	case strings.Contains(m.Text, "!check"):
+		log.D("%s is validating a challenge", m.Author)
+		// !check  CODE  URL
+		cmdArgs := strings.Fields(m.Text)
+		if len(cmdArgs) != 3 {
+			log.W("game: not enought args for !check: %v", len(cmdArgs))
+			return
+		}
+		challengeCode := cmdArgs[1]
+		var challenge Challenge
+		ok := false
+		for _, ch := range Challenges {
+			if ch.Code == challengeCode {
+				challenge = ch
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			// TODO(ronoaldo): reply to the viewer
+			log.W("game: invalid challenge code: %v", challengeCode)
+			return
+		}
+		_, linkAlreadyUsed := g.UsedLinks[cmdArgs[2]]
+		if linkAlreadyUsed {
+			log.W("game: %v already used", cmdArgs[2])
+			return
+		}
+		g.UsedLinks[cmdArgs[2]] = struct{}{}
+		cr, err := Check(m.Author, cmdArgs[2], challenge)
+		if err != nil {
+			log.W("game: error while checking: %v", err)
+			return
+		}
+		_, alreadyCompleted := v.CompletedChallenges[challengeCode]
+		if alreadyCompleted {
+			log.I("game: %v already solved the challenge: %v", v.Name, challengeCode)
+			return
+		}
+		if cr.OK {
+			log.I("game: %v completed a challenge!", v.Name)
+			v.VelX = -200
+			v.XP += challenge.Reward
+			v.CompletedChallenges[challengeCode] = struct{}{}
+		} else {
+			log.W("game: %v provided wrong anser: %v", v.Name, cr.Result)
+		}
 	}
 }
 
@@ -351,6 +405,7 @@ func New() *Game {
 	g := Game{}
 	g.Viewers = make(map[string]*Viewer)
 	g.FightingQueue = make(map[string]bool)
+	g.UsedLinks = make(map[string]struct{})
 	return &g
 }
 

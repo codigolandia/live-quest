@@ -9,7 +9,7 @@
   },
   {
     "type": "static",
-    "code": "ola",
+    "code": "if",
     "backend": "goplayground",
     "codeContains": "if",
     "output": "true\n",

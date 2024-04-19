@@ -7,11 +7,27 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/codigolandia/live-quest/log"
 )
+
+var Challenges []Challenge
+
+func init() {
+	// TODO(ronoaldo): refactor this part, perhaps this can be a cli arg?
+	b, err := os.ReadFile("challenges.json")
+	if err != nil {
+		log.E("cmdcheck: error loading challenges.json: %v", err)
+	}
+	if err = json.Unmarshal(b, &Challenges); err != nil {
+		log.E("cmdcheck: error deserializing challenges: %v", err)
+	}
+
+	log.I("challenges loaded: %v", Challenges)
+}
 
 type ChallangeType string
 

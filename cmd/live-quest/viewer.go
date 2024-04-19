@@ -28,13 +28,16 @@ type Viewer struct {
 	Animation      string      `json:"animation"`
 	AnimationFrame int         `json:"animationFrame"`
 	SpriteColor    *color.RGBA `json:"spriteColor"`
+
+	CompletedChallenges map[string]struct{} `json:"completedChallenges"`
 }
 
 func NewViewer() *Viewer {
 	v := Viewer{
-		HP:          100,
-		XP:          0,
-		SpriteColor: &ColorGopherBlue,
+		HP:                  100,
+		XP:                  0,
+		SpriteColor:         &ColorGopherBlue,
+		CompletedChallenges: make(map[string]struct{}),
 	}
 	return &v
 }
