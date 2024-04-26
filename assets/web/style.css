@@ -21,3 +21,11 @@ body {
 	background-color: rgba(0, 0, 0, 0.4);
 	padding: 4px;
 }
+
+.message.twitch {
+	border-left: 4px solid #944DFF;
+}
+
+.message.youtube {
+	border-left: 4px solid #FF0808;
+}

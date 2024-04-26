@@ -49,9 +49,14 @@ na tela.
   - [x] `!fight` para iniciar uma luta
   - [x] `!check` para validar se seu desafio esta correto
     - [x] Backend go.dev/play
+    - [ ] Implementar fila para processar os checks
 - [x] Adicionar a plataforma (Youtube, Twitch) como icone ao lado do nome do personagem
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS
+- [ ] Responder aos comandos do usuário, como !chat
+  - [ ] Implementar OAuth do Youtube
+  - [ ] Implementar o OAuth da Twitch
+- [x] Melhorar o tema do chat, manter as mensagens
 - [ ] Limitar a quantidade de expectadores simultâneos
 - [ ] Implementar o go releaser como Github Action.
 

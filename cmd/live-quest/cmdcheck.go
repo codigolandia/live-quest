@@ -26,7 +26,7 @@ func init() {
 		log.E("cmdcheck: error deserializing challenges: %v", err)
 	}
 
-	log.I("challenges loaded: %v", Challenges)
+	log.I("challenges loaded: %v", len(Challenges))
 }
 
 type ChallangeType string

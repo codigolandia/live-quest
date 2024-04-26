@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/fs"
 	"net/http"
 
@@ -8,11 +9,11 @@ import (
 )
 
 func (g *Game) ServeChat(w http.ResponseWriter, r *http.Request) {
-	tempFileMu.Lock()
-	defer tempFileMu.Unlock()
-
-	http.ServeFile(w, r, g.tempFile())
-	w.Header().Set("cache-control", "no-cache")
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(g.ChatHistory); err != nil {
+		http.Error(w, "game: error serializing chat: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 var dynamicHandler = http.FileServer(http.Dir("./assets/web"))
