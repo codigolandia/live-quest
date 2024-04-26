@@ -41,19 +41,15 @@ func LoadAnimation(path string) (bundle Bundle, err error) {
 			return nil, fmt.Errorf("animation: invalid path parts: %#v", pathParts)
 		}
 		anim, fileName := pathParts[2], pathParts[3]
-		// TODO: handle error properly in LoadEbitenImg
-		img := LoadEbitenImg(f)
-		if err != nil {
-			return nil, fmt.Errorf("animation: error loading frame: %v: %w", f, err)
-		}
-
 		a, ok := bundle[anim]
 		if !ok {
 			a = &Animation{}
 		}
 		if strings.HasPrefix(fileName, "frame") {
+			img := LoadEbitenImg(f, true)
 			a.Frames = append(a.Frames, img)
 		} else {
+			img := LoadEbitenImg(f, false)
 			a.Skins = append(a.Skins, img)
 		}
 		bundle[anim] = a

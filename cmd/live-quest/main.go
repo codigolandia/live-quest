@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
@@ -29,8 +30,12 @@ var (
 	Width  = 1920
 	Height = 1080
 
-	// Delay para realizar o auto-save em game ticks
+	// AutoSaveDelay is a delay to update the code state
 	AutoSaveDelay = 60 * 10
+
+	// GopherDrawingTimeout is the time stop displaying the player on screen
+	// due to inactivity
+	GopherDrawingTimeout = 20 * time.Minute
 
 	ColorGreen      = color.RGBA{0, 0xff, 0, 0xff}
 	ColorGopherBlue = color.RGBA{0x9c, 0xed, 0xff, 0xff}
@@ -194,7 +199,7 @@ func (g *Game) ParseCommands(m message.Message, v *Viewer) {
 		v.VelY = -100
 	case strings.Contains(m.Text, "!color"):
 		log.D("%s is changing the Gopher color!", m.Author)
-		v.SpriteColor = RandomColor()
+		v.SpriteColor = SelectColor(m.Text)
 	case strings.Contains(m.Text, "!fight"):
 		log.D("%s is looking for a fight!", m.Author)
 		g.FightingQueue[m.UID] = true
@@ -300,11 +305,22 @@ func (g *Game) FightRound() {
 	}
 }
 
+func (g *Game) LastActivity(v *Viewer) (last time.Time) {
+	for _, m := range g.ChatHistory {
+		if m.UID == v.UID {
+			last = m.Timestamp
+		}
+	}
+	return
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(ColorGreen)
 	for _, uid := range g.UIDs {
 		v := g.Viewers[uid]
-		v.Draw(screen)
+		if time.Since(g.LastActivity(v)) < GopherDrawingTimeout {
+			v.Draw(screen)
+		}
 	}
 	g.DrawLeaderBoard(screen)
 }

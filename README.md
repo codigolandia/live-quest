@@ -57,7 +57,8 @@ na tela.
   - [ ] Implementar OAuth do Youtube
   - [ ] Implementar o OAuth da Twitch
 - [x] Melhorar o tema do chat, manter as mensagens
-- [ ] Limitar a quantidade de expectadores simultâneos
+- [x] Limitar a quantidade de expectadores simultâneos
+- [x] Permitir escolher a cor do Gopher
 - [ ] Implementar o go releaser como Github Action.
 
 ### Poderes e Powerups
