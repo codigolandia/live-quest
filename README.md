@@ -43,13 +43,13 @@ na tela.
   - [x] Adicionar o XP ao jogador durante a live
   - [x] Adicionar HP
 - [x] Adicionar um placar dos jogadores
-- [ ] Adicionar os comandos de chat
+- [x] Adicionar os comandos de chat
   - [x] `!jump` para pular
   - [x] `!color` para randomizar a cor do personagem
   - [x] `!fight` para iniciar uma luta
   - [x] `!check` para validar se seu desafio esta correto
     - [x] Backend go.dev/play
-    - [ ] Implementar fila para processar os checks
+    - [x] Implementar fila para processar os checks
 - [x] Adicionar a plataforma (Youtube, Twitch) como icone ao lado do nome do personagem
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS

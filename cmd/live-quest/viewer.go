@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"math/rand"
+	"sync"
 
 	"github.com/codigolandia/live-quest/assets"
 	"github.com/codigolandia/live-quest/message"
@@ -30,6 +31,8 @@ type Viewer struct {
 	SpriteColor    *color.RGBA `json:"spriteColor"`
 
 	CompletedChallenges map[string]struct{} `json:"completedChallenges"`
+
+	mu sync.Mutex
 }
 
 func NewViewer() *Viewer {
@@ -43,6 +46,13 @@ func NewViewer() *Viewer {
 }
 
 const XPPerLevel = 100
+
+func (v *Viewer) IncXP(xpDelta int) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	v.XP += xpDelta
+}
 
 func (v *Viewer) Level() int {
 	return v.XP / XPPerLevel
@@ -77,6 +87,10 @@ func (v *Viewer) WalkRight() {
 	if v.AnimationFrame == 0 {
 		v.AnimationFrame = rand.Int() % v.CurrAnimFrames()
 	}
+}
+
+func (v *Viewer) Jump() {
+	v.VelY = -150
 }
 
 func (v *Viewer) Damage(value int) {
@@ -205,6 +219,13 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 	//  |.....|^^^^^|......
 	px, py := v.PosX-(float64(nameTagLen)-float64(gopherSize))/2, int(v.PosY)-2
 	DrawTextAt(screen, nameTag, float64(px), float64(py))
+}
+
+func (v *Viewer) MarkCompleted(challenge string) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	v.CompletedChallenges[challenge] = struct{}{}
 }
 
 // ByXP sorts a list of viewers by their XP.

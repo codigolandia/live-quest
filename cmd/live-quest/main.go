@@ -81,6 +81,8 @@ type Game struct {
 
 	YoutubePageToken string `json:"youtubePageToken"`
 	Count            int    `json:"-"`
+
+	queue chan message.Message
 }
 
 var tempFileMu sync.Mutex
@@ -180,7 +182,7 @@ func (g *Game) CheckNewMessages() {
 		}
 
 		g.ParseCommands(m, v)
-		v.XP += 10
+		v.IncXP(10)
 	}
 }
 
@@ -197,52 +199,7 @@ func (g *Game) ParseCommands(m message.Message, v *Viewer) {
 		log.D("%s is looking for a fight!", m.Author)
 		g.FightingQueue[m.UID] = true
 	case strings.Contains(m.Text, "!check"):
-		log.D("%s is validating a challenge", m.Author)
-		// !check  CODE  URL
-		cmdArgs := strings.Fields(m.Text)
-		if len(cmdArgs) != 3 {
-			log.W("game: not enought args for !check: %v", len(cmdArgs))
-			return
-		}
-		challengeCode := cmdArgs[1]
-		var challenge Challenge
-		ok := false
-		for _, ch := range Challenges {
-			if ch.Code == challengeCode {
-				challenge = ch
-				ok = true
-				break
-			}
-		}
-		if !ok {
-			// TODO(ronoaldo): reply to the viewer
-			log.W("game: invalid challenge code: %v", challengeCode)
-			return
-		}
-		_, linkAlreadyUsed := g.UsedLinks[cmdArgs[2]]
-		if linkAlreadyUsed {
-			log.W("game: %v already used", cmdArgs[2])
-			return
-		}
-		g.UsedLinks[cmdArgs[2]] = struct{}{}
-		cr, err := Check(m.Author, cmdArgs[2], challenge)
-		if err != nil {
-			log.W("game: error while checking: %v", err)
-			return
-		}
-		_, alreadyCompleted := v.CompletedChallenges[challengeCode]
-		if alreadyCompleted {
-			log.I("game: %v already solved the challenge: %v", v.Name, challengeCode)
-			return
-		}
-		if cr.OK {
-			log.I("game: %v completed a challenge!", v.Name)
-			v.VelX = -200
-			v.XP += challenge.Reward
-			v.CompletedChallenges[challengeCode] = struct{}{}
-		} else {
-			log.W("game: %v provided wrong anser: %v", v.Name, cr.Result)
-		}
+		g.queue <- m
 	}
 }
 
@@ -336,10 +293,10 @@ func (g *Game) FightRound() {
 		log.D("fight: fight is over: %v won!", attacker.Name)
 		g.FightState = FightState{}
 		defender.HP = 100
-		defender.XP += 20
+		defender.IncXP(20)
 		attacker.HP = 100
-		attacker.XP += 50
-		attacker.VelY = -150
+		attacker.IncXP(50)
+		attacker.Jump()
 	}
 }
 
@@ -451,6 +408,9 @@ func main() {
 	if err != nil {
 		log.E("live-quest: unable to initialize Twitch client: %v", err)
 	}
+
+	// Initialize challenge queue
+	go g.ChallengeQueue()
 
 	ebiten.SetWindowSize(Width, Height)
 	ebiten.SetWindowTitle("LiveQuest")

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/codigolandia/live-quest/message"
 	"io"
 	"net/http"
 	"net/url"
@@ -209,5 +210,59 @@ func Check(author string, shareUrl string, challenge Challenge) (cr *CheckResult
 func closeWithLog(f func() error) {
 	if err := f(); err != nil {
 		log.W("Error when closing: %v", err)
+	}
+}
+func (g *Game) ChallengeQueue() {
+	g.queue = make(chan message.Message, 100)
+
+	for m := range g.queue {
+		log.D("%s is validating a challenge", m.Author)
+		// !check  CODE  URL
+		cmdArgs := strings.Fields(m.Text)
+		if len(cmdArgs) != 3 {
+			log.W("game: not enought args for !check: %v", len(cmdArgs))
+			return
+		}
+		challengeCode := cmdArgs[1]
+		var challenge Challenge
+		ok := false
+		for _, ch := range Challenges {
+			if ch.Code == challengeCode {
+				challenge = ch
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			// TODO(ronoaldo): reply to the viewer
+			log.W("game: invalid challenge code: %v", challengeCode)
+			return
+		}
+		_, linkAlreadyUsed := g.UsedLinks[cmdArgs[2]]
+		if linkAlreadyUsed {
+			log.W("game: %v already used", cmdArgs[2])
+			return
+		}
+		g.UsedLinks[cmdArgs[2]] = struct{}{}
+		cr, err := Check(m.Author, cmdArgs[2], challenge)
+		if err != nil {
+			log.W("game: error while checking: %v", err)
+			return
+		}
+
+		v := g.Viewers[m.UID]
+		_, alreadyCompleted := v.CompletedChallenges[challengeCode]
+		if alreadyCompleted {
+			log.I("game: %v already solved the challenge: %v", v.Name, challengeCode)
+			return
+		}
+		if cr.OK {
+			log.I("game: %v completed a challenge!", v.Name)
+			v.Jump()
+			v.IncXP(challenge.Reward)
+			v.MarkCompleted(challengeCode)
+		} else {
+			log.W("game: %v provided wrong anser: %v", v.Name, cr.Result)
+		}
 	}
 }
