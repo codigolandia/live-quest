@@ -1,6 +1,6 @@
 # live-quest
 
-![Gopher](assets/img/gopher_standing.gif)
+![Gopher](assets/animations/gopher/standing/gopher_standing.gif)
 
 Este é o nosso primeiro projeto na Codigolândia: um jogo desenvolvido em **Go**
 e que pode ser jogado durante as lives!
@@ -50,12 +50,12 @@ na tela.
   - [x] `!check` para validar se seu desafio esta correto
     - [x] Backend go.dev/play
     - [x] Implementar fila para processar os checks
-- [x] Adicionar a plataforma (Youtube, Twitch) como icone ao lado do nome do personagem
+- [x] Adicionar a plataforma (Youtube, Twitch) como cor ao lado do nome do personagem
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS
 - [ ] Responder aos comandos do usuário, como !chat
   - [ ] Implementar OAuth do Youtube
-  - [ ] Implementar o OAuth da Twitch
+  - [x] Implementar OAuth da Twitch
 - [x] Melhorar o tema do chat, manter as mensagens
 - [x] Limitar a quantidade de expectadores simultâneos
 - [x] Permitir escolher a cor do Gopher

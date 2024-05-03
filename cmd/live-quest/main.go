@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/codigolandia/live-quest/oauth"
 	"image/color"
 	"math/rand"
 	"net/http"
@@ -420,7 +421,12 @@ func main() {
 	if err != nil {
 		log.E("live-quest: unable to initialize Youtube client: %v", err)
 	}
-	tw, err = twitch.New()
+
+	twts, err := oauth.NewTokenSource(message.PlatformTwitch)
+	if err != nil {
+		log.E("live-quest: error fetching token source: %v", err)
+	}
+	tw, err = twitch.New(twts)
 	if err != nil {
 		log.E("live-quest: unable to initialize Twitch client: %v", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"golang.org/x/oauth2"
 	"net"
 	"net/textproto"
 	"strings"
@@ -22,19 +23,21 @@ func init() {
 }
 
 type Client struct {
-	conn   net.Conn
-	reader *textproto.Reader
+	conn        net.Conn
+	reader      *textproto.Reader
+	tokenSource oauth2.TokenSource
 
 	unreadMu sync.Mutex
 	unread   []message.Message
 }
 
-func New() (c *Client, err error) {
+func New(tokenSource oauth2.TokenSource) (c *Client, err error) {
 	if Channel == "" {
 		return nil, fmt.Errorf("twitch: no channel informed; missing --twitch-channel parameter?")
 	}
 	log.I("connecting to twitch IRC server at %s", addr)
 	c = &Client{}
+	c.tokenSource = tokenSource
 	c.unread = make([]message.Message, 0, 10)
 	c.conn, err = net.Dial("tcp", addr)
 	if err != nil {
@@ -45,8 +48,16 @@ func New() (c *Client, err error) {
 	c.goReadTheMessages()
 	log.D("tcp connection stablished")
 
-	log.D("sending NICK command (err=%v)", c.send("NICK justinfan12345"))
-	log.D("joining channel (err=%v)", c.send("JOIN #"+Channel))
+	// Auth with twitch
+	token, err := c.tokenSource.Token()
+	if err != nil {
+		return nil, err
+	}
+	log.D("using token: %v (%d)", token.AccessToken[0:3], len(token.AccessToken))
+	c.send("PASS oauth:" + token.AccessToken)
+	c.send("NICK " + strings.ToLower(Channel))
+	c.send("JOIN #" + Channel)
+	c.SendMessage("LiveQuest on!")
 	return c, nil
 }
 
@@ -123,6 +134,10 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 	copy(msg, c.unread)
 	c.unread = make([]message.Message, 0, 10)
 	return msg
+}
+
+func (c *Client) SendMessage(msg string) error {
+	return c.send("PRIVMSG #" + Channel + " :" + msg)
 }
 
 func (c *Client) Close() {
