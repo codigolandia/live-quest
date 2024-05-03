@@ -220,8 +220,9 @@ func (g *Game) ChallengeQueue() {
 		// !check  CODE  URL
 		cmdArgs := strings.Fields(m.Text)
 		if len(cmdArgs) != 3 {
+			g.SendMessage(m.Platform, helpMsg)
 			log.W("game: not enought args for !check: %v", len(cmdArgs))
-			return
+			continue
 		}
 		challengeCode := cmdArgs[1]
 		var challenge Challenge
@@ -234,34 +235,42 @@ func (g *Game) ChallengeQueue() {
 			}
 		}
 		if !ok {
-			// TODO(ronoaldo): reply to the viewer
+			g.SendMessage(m.Platform,
+				fmt.Sprintf("@%s: código do desafio não reconhecido: %v",
+					m.Author, challengeCode))
 			log.W("game: invalid challenge code: %v", challengeCode)
-			return
+			continue
 		}
 		_, linkAlreadyUsed := g.UsedLinks[cmdArgs[2]]
 		if linkAlreadyUsed {
+			g.SendMessage(m.Platform, "@"+m.Author+": este link já foi utilizado para outro desafio!")
 			log.W("game: %v already used", cmdArgs[2])
-			return
+			continue
 		}
 		g.UsedLinks[cmdArgs[2]] = struct{}{}
 		cr, err := Check(m.Author, cmdArgs[2], challenge)
 		if err != nil {
+			g.SendMessage(m.Platform, "@"+m.Author+": ops! erro ao checar; tente novamente!")
 			log.W("game: error while checking: %v", err)
-			return
+			continue
 		}
 
 		v := g.Viewers[m.UID]
 		_, alreadyCompleted := v.CompletedChallenges[challengeCode]
 		if alreadyCompleted {
+			g.SendMessage(m.Platform, "@"+m.Author+": parabéns! mas você já ganhou XP por este desafio ;)")
 			log.I("game: %v already solved the challenge: %v", v.Name, challengeCode)
-			return
+			continue
 		}
 		if cr.OK {
+			g.SendMessage(m.Platform,
+				fmt.Sprintf("@%s: parabéns! ganhou %d XP", m.Author, challenge.Reward))
 			log.I("game: %v completed a challenge!", v.Name)
 			v.Jump()
 			v.IncXP(challenge.Reward)
 			v.MarkCompleted(challengeCode)
 		} else {
+			g.SendMessage(m.Platform, "@"+m.Author+": que pena, resposta errada; tente novamente!")
 			log.W("game: %v provided wrong anser: %v", v.Name, cr.Result)
 		}
 	}

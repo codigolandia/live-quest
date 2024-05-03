@@ -192,9 +192,26 @@ func (g *Game) CheckNewMessages() {
 	}
 }
 
+var helpMsg = `!color: para personalizar o gopher; !jump para ele pular; !check para resolver desafio de programação.`
+
+func (g *Game) SendMessage(platform, msg string) {
+	var err error
+	if platform == message.PlatformYoutube {
+		err = yt.SendMessage(msg)
+	} else {
+		err = tw.SendMessage(msg)
+	}
+	if err != nil {
+		log.E("live-quest: error sending message to %v: %v", platform, err)
+	}
+}
+
 func (g *Game) ParseCommands(m message.Message, v *Viewer) {
 	// Processa os comandos
 	switch {
+	case strings.Contains(m.Text, "!help"):
+		log.D("%s asked for help")
+		g.SendMessage(m.Platform, helpMsg)
 	case strings.Contains(m.Text, "!jump"):
 		log.D("%s is jumping!", m.Author)
 		v.VelY = -100
@@ -417,7 +434,11 @@ func main() {
 	g.Autoload()
 
 	var err error
-	yt, err = youtube.New(g.YoutubePageToken)
+	ytts, err := oauth.NewTokenSource(message.PlatformYoutube)
+	if err != nil {
+		log.E("live-quest: unable to authorize using oAuth: %v", err)
+	}
+	yt, err = youtube.New(g.YoutubePageToken, ytts)
 	if err != nil {
 		log.E("live-quest: unable to initialize Youtube client: %v", err)
 	}

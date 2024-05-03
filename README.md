@@ -53,8 +53,8 @@ na tela.
 - [x] Adicionar a plataforma (Youtube, Twitch) como cor ao lado do nome do personagem
 - [x] Otimizar o chat do Youtube
 - [x] Escrever o chat via Overlay no OBS
-- [ ] Responder aos comandos do usuário, como !chat
-  - [ ] Implementar OAuth do Youtube
+- [x] Responder aos comandos do usuário, como !chat
+  - [x] Implementar OAuth do Youtube
   - [x] Implementar OAuth da Twitch
 - [x] Melhorar o tema do chat, manter as mensagens
 - [x] Limitar a quantidade de expectadores simultâneos

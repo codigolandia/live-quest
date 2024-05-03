@@ -3,6 +3,7 @@ package youtube
 import (
 	"context"
 	"fmt"
+	"golang.org/x/oauth2"
 	"net/http"
 	"os"
 	"sync"
@@ -17,9 +18,8 @@ import (
 var LiveId = ""
 
 type Client struct {
-	hc     http.Client
-	svc    *yt.Service
-	apiKey string
+	hc  http.Client
+	svc *yt.Service
 
 	chatId          string
 	nextPageToken   string
@@ -30,15 +30,22 @@ type Client struct {
 	unread   []message.Message
 }
 
-func New(nextPageToken string) (*Client, error) {
+func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err error) {
 	log.I("Continuing from page token: %v", nextPageToken)
-	apiKey := os.Getenv("YOUTUBE_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("youtube: environment variable unset: YOUTUBE_API_KEY")
+
+	var svc *yt.Service
+	ctx := context.Background()
+
+	if tokenSource == nil {
+		apiKey := os.Getenv("YOUTUBE_API_KEY")
+		if apiKey == "" {
+			return nil, fmt.Errorf("youtube: environment variable unset: YOUTUBE_API_KEY")
+		}
+		svc, err = yt.NewService(ctx, option.WithAPIKey(apiKey))
+	} else {
+		svc, err = yt.NewService(ctx, option.WithTokenSource(tokenSource))
 	}
 
-	ctx := context.Background()
-	svc, err := yt.NewService(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("youtube: error initializing Youtube service: %v", err)
 	}
@@ -47,10 +54,9 @@ func New(nextPageToken string) (*Client, error) {
 		return nil, fmt.Errorf("youtube: missing flag LiveID")
 	}
 
-	c := &Client{
+	c = &Client{
 		hc:            http.Client{},
 		svc:           svc,
-		apiKey:        apiKey,
 		unread:        make([]message.Message, 0, 10),
 		nextPageToken: nextPageToken,
 	}
@@ -102,6 +108,10 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 }
 
 func (c *Client) goReadTheMessages() {
+	c.loadChatId()
+	if err := c.SendMessage("LiveQuest on!"); err != nil {
+		log.W("youtube: error sending welcome message: %v", err)
+	}
 	go func() {
 		for {
 			// Avoid repeating many requests if an error happens
@@ -151,6 +161,20 @@ func (c *Client) NextPageToken() string {
 		return ""
 	}
 	return c.nextPageToken
+}
+
+func (c *Client) SendMessage(msg string) error {
+	l := &yt.LiveChatMessage{
+		Snippet: &yt.LiveChatMessageSnippet{
+			LiveChatId: c.chatId,
+			Type:       "textMessageEvent",
+			TextMessageDetails: &yt.LiveChatTextMessageDetails{
+				MessageText: msg,
+			},
+		},
+	}
+	_, err := c.svc.LiveChatMessages.Insert([]string{"snippet"}, l).Do()
+	return err
 }
 
 func (c *Client) SetPageToken(t string) {
