@@ -28,38 +28,12 @@ Este programa se conecta aos chats da transmissão ao vivo e utiliza esta
 informação para desenhar os personagens
 na tela.
 
-## TODO
+## Features
 
-- [x] Rename: trocar as referências do antigo nome para `live-quest`
-- [x] Ler os expectadores do Youtube
-- [x] Ler os expectadores do Twitch
-- [x] Enviar o PONG ao receber um PING da Twitch
-- [x] Preservar o histórico do chat
-- [x] Não duplicar os expectadores
-- [x] Criar um pixel art do Gopher
-- [x] Movimentar o expectador na tela
-- [x] Atribuir cores aleatórias aos Gophers
-- [x] Adicionar recursos de XP
-  - [x] Adicionar o XP ao jogador durante a live
-  - [x] Adicionar HP
-- [x] Adicionar um placar dos jogadores
-- [x] Adicionar os comandos de chat
-  - [x] `!jump` para pular
-  - [x] `!color` para randomizar a cor do personagem
-  - [x] `!fight` para iniciar uma luta
-  - [x] `!check` para validar se seu desafio esta correto
-    - [x] Backend go.dev/play
-    - [x] Implementar fila para processar os checks
-- [x] Adicionar a plataforma (Youtube, Twitch) como cor ao lado do nome do personagem
-- [x] Otimizar o chat do Youtube
-- [x] Escrever o chat via Overlay no OBS
-- [x] Responder aos comandos do usuário, como !chat
-  - [x] Implementar OAuth do Youtube
-  - [x] Implementar OAuth da Twitch
-- [x] Melhorar o tema do chat, manter as mensagens
-- [x] Limitar a quantidade de expectadores simultâneos
-- [x] Permitir escolher a cor do Gopher
-- [ ] Implementar o go releaser como Github Action.
+- Suporte às plataformas do Youtube e Twitch para *live stream*.
+- Histórico do chat para integração ao OBS Studio.
+- Avatar de Gopher para os expectadores, com customização de cores.
+- Progresso em XP por interações e resolução de desafios de programação.
 
 ### Poderes e Powerups
 
