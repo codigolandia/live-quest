@@ -25,6 +25,9 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Install XVFB
+        run: sudo apt -y install xvfb
+
       - name: Run unit tests
         run: go test ./...
 
