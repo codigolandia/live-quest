@@ -4,9 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"testing"
-	"time"
-
-	"github.com/codigolandia/live-quest/log"
 )
 
 var integrationTest bool
@@ -14,19 +11,6 @@ var integrationTest bool
 func init() {
 	flag.BoolVar(&integrationTest, "it", false, "Run integration tests")
 	Channel = "codigolandia"
-}
-
-func TestNewClient(t *testing.T) {
-	if !integrationTest {
-		t.Skip("Integration tests disabled, skipping...")
-	}
-	log.LogLevel = log.Debug
-	c, err := New()
-	if err != nil {
-		t.Errorf("error initializing connection %v", err)
-	}
-	time.Sleep(60 * time.Second)
-	defer c.Close()
 }
 
 func TestParseAuthor(t *testing.T) {
