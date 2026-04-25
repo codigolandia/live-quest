@@ -3,11 +3,12 @@ package youtube
 import (
 	"context"
 	"fmt"
-	"golang.org/x/oauth2"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
@@ -109,48 +110,51 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 
 func (c *Client) goReadTheMessages() {
 	c.loadChatId()
-	if err := c.SendMessage("LiveQuest on!"); err != nil {
-		log.W("youtube: error sending welcome message: %v", err)
-	}
+	//if err := c.SendMessage("LiveQuest on!"); err != nil {
+	//	log.W("youtube: error sending welcome message: %v", err)
+	//}
+	//fields := []googleapi.Field{"snippet"}
 	go func() {
 		for {
 			// Avoid repeating many requests if an error happens
 			c.lastFetchTime = time.Now()
 			c.pollingInterval = 10 * time.Second
 
-			fields := []string{"authorDetails,snippet"}
-			req := c.svc.LiveChatMessages.List(c.loadChatId(), fields)
+			req := c.svc.Youtube.V3.LiveChat.Messages.Stream()
 			req.PageToken(c.nextPageToken)
+			req.LiveChatId(c.loadChatId())
+			req.MaxResults(20)
+
 			resp, err := req.Do()
-			if err != nil {
-				log.E("error loading messages: %v", err)
-				return
-			}
-			for i := range resp.Items {
-				item := resp.Items[i]
-				timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
-				if err != nil {
-					log.E("unable to parse %v as timestamp: %v",
-						item.Snippet.PublishedAt, err)
-					timeStamp = time.Now()
+			if err == nil {
+				for i := range resp.Items {
+					item := resp.Items[i]
+					timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
+					if err != nil {
+						log.E("unable to parse %v as timestamp: %v",
+							item.Snippet.PublishedAt, err)
+						timeStamp = time.Now()
+					}
+					c.unreadMu.Lock()
+					c.unread = append(c.unread, message.Message{
+						UID:       item.AuthorDetails.ChannelId,
+						Author:    item.AuthorDetails.DisplayName,
+						Text:      item.Snippet.DisplayMessage,
+						Timestamp: timeStamp,
+						Platform:  message.PlatformYoutube,
+					})
+					c.unreadMu.Unlock()
 				}
-				c.unreadMu.Lock()
-				c.unread = append(c.unread, message.Message{
-					UID:       item.AuthorDetails.ChannelId,
-					Author:    item.AuthorDetails.DisplayName,
-					Text:      item.Snippet.DisplayMessage,
-					Timestamp: timeStamp,
-					Platform:  message.PlatformYoutube,
-				})
-				c.unreadMu.Unlock()
+				c.nextPageToken = resp.NextPageToken
+				// Wait for pollingInterval to be passed before calling again.
+				d := time.Duration(resp.PollingIntervalMillis) * time.Millisecond
+				c.pollingInterval = d
+				time.Sleep(max(c.pollingInterval, 3*time.Second))
+			} else {
+				log.E("error loading messages: err=%v, resp=%#v", err, resp)
+				time.Sleep(10 * time.Second)
 			}
 
-			c.nextPageToken = resp.NextPageToken
-			d := time.Duration(resp.PollingIntervalMillis) * time.Millisecond
-			c.pollingInterval = d
-
-			// Wait for pollingInterval to be passed before calling again.
-			time.Sleep(max(c.pollingInterval, 3*time.Second))
 			log.D("waiting for messages")
 		}
 	}()

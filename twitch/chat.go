@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"golang.org/x/oauth2"
 	"net"
 	"net/textproto"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
@@ -57,7 +58,7 @@ func New(tokenSource oauth2.TokenSource) (c *Client, err error) {
 	c.send("PASS oauth:" + token.AccessToken)
 	c.send("NICK " + strings.ToLower(Channel))
 	c.send("JOIN #" + Channel)
-	c.SendMessage("LiveQuest on!")
+	//c.SendMessage("LiveQuest on!")
 	return c, nil
 }
 
@@ -118,7 +119,7 @@ func (c *Client) recv() (msg string, err error) {
 }
 
 func (c *Client) send(msg string) error {
-	n, err := fmt.Fprintf(c.conn, msg+"\n")
+	n, err := fmt.Fprint(c.conn, msg+"\n")
 	log.D("%d bytes sent (err=%v)", n, err)
 	return err
 }
