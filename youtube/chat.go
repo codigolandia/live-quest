@@ -3,6 +3,7 @@ package youtube
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
+	"github.com/codigolandia/live-quest/youtube/proto"
+	ytp "github.com/codigolandia/live-quest/youtube/proto"
 	"google.golang.org/api/option"
 	yt "google.golang.org/api/youtube/v3"
 )
@@ -19,8 +22,10 @@ import (
 var LiveId = ""
 
 type Client struct {
-	hc  http.Client
-	svc *yt.Service
+	hc   http.Client
+	svc  *yt.Service
+	dsvc *ytp.DataClient
+	ctx  context.Context
 
 	chatId          string
 	nextPageToken   string
@@ -34,9 +39,14 @@ type Client struct {
 func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err error) {
 	log.I("Continuing from page token: %v", nextPageToken)
 
-	var svc *yt.Service
+	var (
+		svc  *yt.Service
+		dsvc *ytp.DataClient
+	)
+
 	ctx := context.Background()
 
+	// TODO: Review if we will keep supporting API Key
 	if tokenSource == nil {
 		apiKey := os.Getenv("YOUTUBE_API_KEY")
 		if apiKey == "" {
@@ -45,6 +55,11 @@ func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err e
 		svc, err = yt.NewService(ctx, option.WithAPIKey(apiKey))
 	} else {
 		svc, err = yt.NewService(ctx, option.WithTokenSource(tokenSource))
+	}
+
+	dsvc, err = ytp.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("youtube: error initializing gRPC client: %v", err)
 	}
 
 	if err != nil {
@@ -58,6 +73,8 @@ func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err e
 	c = &Client{
 		hc:            http.Client{},
 		svc:           svc,
+		dsvc:          dsvc,
+		ctx:           ctx,
 		unread:        make([]message.Message, 0, 10),
 		nextPageToken: nextPageToken,
 	}
@@ -72,9 +89,9 @@ func (c *Client) currentStream() string {
 	return LiveId
 }
 
-func (c *Client) loadChatId() string {
+func (c *Client) loadChatId() *string {
 	if c.chatId != "" {
-		return c.chatId
+		return &c.chatId
 	}
 
 	liveId := c.currentStream()
@@ -92,7 +109,7 @@ func (c *Client) loadChatId() string {
 	if err := req.Pages(context.Background(), callback); err != nil {
 		log.E("error parsing chatID: %v", err)
 	}
-	return c.chatId
+	return &c.chatId
 }
 
 func (c *Client) FetchMessages() (msg []message.Message) {
@@ -110,48 +127,55 @@ func (c *Client) FetchMessages() (msg []message.Message) {
 
 func (c *Client) goReadTheMessages() {
 	c.loadChatId()
-	//if err := c.SendMessage("LiveQuest on!"); err != nil {
-	//	log.W("youtube: error sending welcome message: %v", err)
-	//}
-	//fields := []googleapi.Field{"snippet"}
 	go func() {
 		for {
 			// Avoid repeating many requests if an error happens
 			c.lastFetchTime = time.Now()
 			c.pollingInterval = 10 * time.Second
 
-			req := c.svc.Youtube.V3.LiveChat.Messages.Stream()
-			req.PageToken(c.nextPageToken)
-			req.LiveChatId(c.loadChatId())
-			req.MaxResults(20)
+			req := proto.LiveChatMessageListRequest{
+				Part:       []string{"snippet,authorDetails"},
+				PageToken:  &c.nextPageToken,
+				LiveChatId: c.loadChatId(),
+			}
+			streamList, err := c.dsvc.YT.StreamList(c.ctx, &req)
 
-			resp, err := req.Do()
 			if err == nil {
-				for i := range resp.Items {
-					item := resp.Items[i]
-					timeStamp, err := time.Parse(time.RFC3339Nano, item.Snippet.PublishedAt)
-					if err != nil {
-						log.E("unable to parse %v as timestamp: %v",
-							item.Snippet.PublishedAt, err)
-						timeStamp = time.Now()
+				for {
+					resp, err := streamList.Recv()
+					if err == io.EOF {
+						break
 					}
-					c.unreadMu.Lock()
-					c.unread = append(c.unread, message.Message{
-						UID:       item.AuthorDetails.ChannelId,
-						Author:    item.AuthorDetails.DisplayName,
-						Text:      item.Snippet.DisplayMessage,
-						Timestamp: timeStamp,
-						Platform:  message.PlatformYoutube,
-					})
-					c.unreadMu.Unlock()
+					if err != nil {
+						log.E("youtube: error receiving message: %v", err)
+						continue
+					}
+					c.nextPageToken = resp.GetNextPageToken()
+
+					for _, item := range resp.Items {
+						timeStamp, err := time.Parse(time.RFC3339Nano, *item.Snippet.PublishedAt)
+						if err != nil {
+							log.E("unable to parse %v as timestamp: %v",
+								item.Snippet.PublishedAt, err)
+							timeStamp = time.Now()
+						}
+						c.unreadMu.Lock()
+						c.unread = append(c.unread, message.Message{
+							UID:       *item.AuthorDetails.ChannelId,
+							Author:    *item.AuthorDetails.DisplayName,
+							Text:      *item.Snippet.DisplayMessage,
+							Timestamp: timeStamp,
+							Platform:  message.PlatformYoutube,
+						})
+						c.unreadMu.Unlock()
+					}
 				}
-				c.nextPageToken = resp.NextPageToken
 				// Wait for pollingInterval to be passed before calling again.
-				d := time.Duration(resp.PollingIntervalMillis) * time.Millisecond
+				d := time.Duration(1000) * time.Millisecond
 				c.pollingInterval = d
 				time.Sleep(max(c.pollingInterval, 3*time.Second))
 			} else {
-				log.E("error loading messages: err=%v, resp=%#v", err, resp)
+				log.E("error loading messages: err=%v", err)
 				time.Sleep(10 * time.Second)
 			}
 
