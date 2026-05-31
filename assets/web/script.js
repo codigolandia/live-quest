@@ -12,7 +12,6 @@ function showMessage(chatMessage) {
 	div.setAttribute("class", `message ${chatMessage.platform.toLowerCase()}`);
 	container.appendChild(div);
 
-	setTimeout(function() { container.removeChild(div); }, displayTimeout);
 	window.scrollTo(0, document.body.scrollHeight);
 }
 
