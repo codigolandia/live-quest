@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/codigolandia/live-quest/oauth"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	grpcoauth "google.golang.org/grpc/credentials/oauth"
@@ -21,9 +21,8 @@ type DataClient struct {
 	YT   V3DataLiveChatMessageServiceClient
 }
 
-func NewClient(ctx context.Context) (c *DataClient, err error) {
+func NewClient(ctx context.Context, ts oauth2.TokenSource) (c *DataClient, err error) {
 	c = new(DataClient)
-	ts, err := oauth.NewTokenSource("Youtube")
 	rpcCreds := grpcoauth.TokenSource{TokenSource: ts}
 	opts := make([]grpc.DialOption, 0)
 	opts = append(opts,

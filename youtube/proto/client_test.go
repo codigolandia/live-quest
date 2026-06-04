@@ -19,7 +19,7 @@ func TestClient(t *testing.T) {
 		t.Skip()
 	}
 	ctx := context.Background()
-	c, err := NewClient(ctx)
+	c, err := NewClient(ctx, nil)
 	if err != nil {
 		t.Fatalf("Error initializing GRPC Client: %v", err)
 	}

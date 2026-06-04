@@ -2,6 +2,7 @@ package youtube
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,7 +20,17 @@ import (
 	yt "google.golang.org/api/youtube/v3"
 )
 
-var LiveId = ""
+var (
+	Channel         = ""
+	LiveID          = ""
+	IncludeUpcoming = false
+)
+
+func init() {
+	flag.StringVar(&Channel, "youtube-channel", "", "The Youtube channel to connect to.")
+	flag.StringVar(&LiveID, "youtube-stream", "", "The Youtube video ID of the livestream to connect to.")
+	flag.BoolVar(&IncludeUpcoming, "youtube-include-scheduled", false, "If we should also include upcoming videos")
+}
 
 type Client struct {
 	hc   http.Client
@@ -37,7 +48,10 @@ type Client struct {
 }
 
 func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err error) {
-	log.I("Continuing from page token: %v", nextPageToken)
+	if Channel == "" && LiveID == "" {
+		return nil, fmt.Errorf("youtube: no channel informed; missing --youtube-channel parameter?")
+	}
+	log.I("youtube: continuing from page token: %v", nextPageToken)
 
 	var (
 		svc  *yt.Service
@@ -57,17 +71,13 @@ func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err e
 		svc, err = yt.NewService(ctx, option.WithTokenSource(tokenSource))
 	}
 
-	dsvc, err = ytp.NewClient(ctx)
+	dsvc, err = ytp.NewClient(ctx, tokenSource)
 	if err != nil {
 		return nil, fmt.Errorf("youtube: error initializing gRPC client: %v", err)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("youtube: error initializing Youtube service: %v", err)
-	}
-
-	if LiveId == "" {
-		return nil, fmt.Errorf("youtube: missing flag LiveID")
 	}
 
 	c = &Client{
@@ -84,9 +94,50 @@ func New(nextPageToken string, tokenSource oauth2.TokenSource) (c *Client, err e
 }
 
 func (c *Client) currentStream() string {
-	// TODO: automatizar a busca pela live atual
-	// Requer OAuth2 para acessar a live ativa.
-	return LiveId
+	if LiveID != "" {
+		return LiveID
+	}
+	channelResponse, err := c.svc.Channels.
+		List([]string{"snippet"}).
+		ForHandle(Channel).
+		Do()
+	if err != nil {
+		log.E("youtube: error looking up the channel ID: %v", err)
+		return ""
+	}
+
+	if len(channelResponse.Items) == 0 {
+		log.E("youtube: channel not found for handle %v", Channel)
+		return ""
+	}
+	channelID := channelResponse.Items[0].Id
+
+	eventTypes := []string{"live"}
+	if IncludeUpcoming {
+		eventTypes = append(eventTypes, "upcoming")
+	}
+	for _, eventType := range eventTypes {
+		searchResponse, err := c.svc.Search.
+			List([]string{"snippet"}).
+			ChannelId(channelID).
+			EventType(eventType).
+			Type("video").
+			MaxResults(1).
+			Do()
+		if err != nil {
+			log.E("youtube: error loading current live stream: %v", err)
+			return ""
+		}
+		if len(searchResponse.Items) == 0 {
+			log.E("youtube: no live streams found for channel %v (%v) [%v]", Channel, channelID, eventType)
+		} else {
+			LiveID = searchResponse.Items[0].Id.VideoId
+			log.I("youtube: found %v stream with videoID: %v", eventType, LiveID)
+			break
+		}
+	}
+
+	return LiveID
 }
 
 func (c *Client) loadChatId() *string {
@@ -95,13 +146,17 @@ func (c *Client) loadChatId() *string {
 	}
 
 	liveId := c.currentStream()
-	log.I("loading chat with ID %v", liveId)
+	if liveId == "" {
+		return &c.chatId
+	}
+
+	log.I("youtube: loading chat from videoID: %v", liveId)
 	req := c.svc.Videos.List([]string{"liveStreamingDetails"}).Id(liveId)
 	callback := func(resp *yt.VideoListResponse) error {
 		for i := range resp.Items {
 			v := resp.Items[i]
 			c.chatId = v.LiveStreamingDetails.ActiveLiveChatId
-			log.I("> chatId: %v", c.chatId)
+			log.I("youtube: found chatId: %v", c.chatId)
 			break
 		}
 		return nil
@@ -129,6 +184,12 @@ func (c *Client) goReadTheMessages() {
 	c.loadChatId()
 	go func() {
 		for {
+			if c.loadChatId() == nil || *c.loadChatId() == "" {
+				log.E("youtube: no live stream found. Waiting for 10s")
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
 			// Avoid repeating many requests if an error happens
 			c.lastFetchTime = time.Now()
 			c.pollingInterval = 10 * time.Second
@@ -148,6 +209,7 @@ func (c *Client) goReadTheMessages() {
 					}
 					if err != nil {
 						log.E("youtube: error receiving message: %v", err)
+						time.Sleep(10 * time.Second)
 						continue
 					}
 					c.nextPageToken = resp.GetNextPageToken()
@@ -175,11 +237,9 @@ func (c *Client) goReadTheMessages() {
 				c.pollingInterval = d
 				time.Sleep(max(c.pollingInterval, 3*time.Second))
 			} else {
-				log.E("error loading messages: err=%v", err)
+				log.E("youtube: rror loading messages: err=%v", err)
 				time.Sleep(10 * time.Second)
 			}
-
-			log.D("waiting for messages")
 		}
 	}()
 }

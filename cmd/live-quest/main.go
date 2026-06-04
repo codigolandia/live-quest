@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/codigolandia/live-quest/oauth"
 	"image/color"
 	"math/rand"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/codigolandia/live-quest/oauth"
 
 	"github.com/codigolandia/live-quest/log"
 	"github.com/codigolandia/live-quest/message"
@@ -63,8 +64,6 @@ func init() {
 	face = bitmapfont.Face
 
 	// Command line options
-	flag.StringVar(&youtube.LiveId, "youtube-stream", "",
-		"Enable Youtube chat for the provided video ID")
 	flag.StringVar(&Port, "http-port", "8080", "HTTP Port to listen to")
 	flag.BoolVar(&HttpHotReload, "http-hot-reload", false, "Hot-reload of http assets when developing")
 }
@@ -104,8 +103,9 @@ func (g *Game) Autosave() {
 	if g.Count%(AutoSaveDelay) != 0 {
 		return
 	}
-	log.I("auto-saving ...")
+	log.D("auto-saving ...")
 	fileName := g.tempFile()
+	log.D("save-file: %v", fileName)
 	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		log.E("error opening tempfile: %v", err)
@@ -120,7 +120,7 @@ func (g *Game) Autosave() {
 		log.E("error serializing data: %v", err)
 		return
 	}
-	log.I("game saved!")
+	log.D("game saved!")
 }
 
 func (g *Game) Autoload() {
@@ -158,7 +158,7 @@ func (g *Game) Autoload() {
 		g.UsedLinks = make(map[string]struct{})
 	}
 
-	log.I("game loaded")
+	log.I("game loaded from %v", fileName)
 }
 
 func (g *Game) CheckNewMessages() {

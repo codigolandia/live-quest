@@ -20,7 +20,7 @@ var addr = "irc.chat.twitch.tv:6667"
 var Channel = ""
 
 func init() {
-	flag.StringVar(&Channel, "twitch-channel", "codigolandia", "The Twitch channel to connect to.")
+	flag.StringVar(&Channel, "twitch-channel", "", "The Twitch channel to connect to.")
 }
 
 type Client struct {
